@@ -49,3 +49,7 @@ goal.
 added back on request, once the mechanism underneath is understood. So whenever you skip
 something a production version would have, say so in one line — in the plan, or in a code
 comment. Silent narrowing is how simple code turns into subtly wrong code.
+
+## Canvas course material
+
+The `canvas/` folder holds the downloaded course (Arkitekturprincipper i praksis). It is **gitignored (not tracked)**, so it exists only on the original machine and may be missing in a fresh clone or on another branch checkout - check that it exists before relying on it. Everything about its structure and how to use it is in `canvas/INDEX.md` - read that first.
