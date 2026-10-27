@@ -21,6 +21,7 @@ Scenario: a major event's ticket sales open and a rush of buyers hits the system
 
 ## Scaling design
 
+- **Database engine:** Postgres, one container per database. SQLite was rejected: it is a file inside the process, so API replicas would have to share a file, and "several databases" would not be real database servers.
 - **Z-scaling:** several write databases, each owning some sections. A router maps section -> database. Demo: 4 sections, 2 databases (2 sections each). The "before" is 1 database owning all 4. The design starts with one database and a router entry per section, so adding a second database is a config change, not a rewrite.
 - **X-scaling:** only the stateless API runs as several replicas. Hold state lives in the database, never in API memory.
 - **Caching:** Redis caches section availability only, with a TTL of 1-2 s. It is advisory. `/hold` and `/confirm` always go to the write database, so a stale number can only cause a clean "sold out" answer.
