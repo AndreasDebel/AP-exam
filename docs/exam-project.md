@@ -1,35 +1,42 @@
 # Exam project: event booking platform (decisions so far)
 
-What the assignment requires (baseline, principle menu, fit criteria) lives in `docs/assignment.md`. This file holds only the decisions about this project.
+What the assignment requires (baseline, principle menu, fit criteria) lives in `docs/assignment.md`. This file holds only the decisions about this project. Terms are defined in `GLOSSARY.md`.
 
 Scenario: a major event's ticket sales open and a rush of buyers hits the system. Demoed with a load generator that simulates the rush.
 
 ## Domain decisions
 
-- **Invariant:** a seat can never be sold twice.
-- **Reservation model:** a user holds 4 seats for ~10 minutes while paying. Unpaid holds expire and the seats become available again.
-- **Seat authority:** a write database decides seat ownership atomically (e.g. `UPDATE ... WHERE owner IS NULL`).
-- **Always pick a section first.** No "best available seats" across sections.
-- **Same-section rule:** a user's 4 seats are always in one section, so a reservation never spans databases.
-- **Hold expiry is lazy.** No sweeper, no Redis TTL. A seat is free if `status = 'available' OR (status = 'held' AND hold_until < now)`. A `sold` seat never matches, whatever `hold_until` says.
+- **Invariant:** a section can never sell more places than its capacity.
+- **Buyer flow:** the buyer picks a section (never specific seats), holds up to 4 places for ~10 minutes, then confirms 0 to 4 of them. Unconfirmed places return to the section.
+- **One hold per buyer, one section.** A hold never spans sections, so it never spans databases.
+- **No seat numbers.** Places are interchangeable. A ticket says "section X, n places".
+- **Section state:** a section has a capacity and a `sold` count. Holds are rows (buyer, section, quantity, `hold_until`).
+- **Availability:** `capacity - sold - quantity of live holds`. A hold is live while `hold_until > now`.
+- **Hold expiry is lazy.** No sweeper, no Redis TTL. An expired hold simply stops counting.
+- **Seat authority:** the section's write database decides, atomically, in one transaction that locks the section row.
 - **Payment is simulated:** a button that calls `/confirm`.
-- **Confirm is an atomic claim, checked by the server:** `UPDATE seat SET status='sold' WHERE id=@id AND owner=@user AND status='held' AND hold_until > now`. 0 rows updated means "hold expired".
+- **Confirm is an atomic claim, checked by the server:** in one transaction, delete the buyer's hold if `hold_until > now`, then `sold += n`. No live hold means "hold expired".
 - **Frontend countdown is UX only.** The server is the authority.
-- **Dropped on purpose:** late payment, refunds, and extending the hold while a payment is in flight. A late confirm just returns "hold expired".
+- **Dropped on purpose:** seat numbers, a seat map, best-available seating, late payment, refunds, extending a hold while a payment is in flight. A late confirm just returns "hold expired".
 
-## Z-scaling design
+## Scaling design
 
-- Several write databases, each owning some venue sections. A router maps section -> database. Sections outnumber databases, so several sections share one database.
-- Plan for it from day one: the design must work with one database and a router with a single entry, so adding a second database is a config change, not a rewrite.
+- **Z-scaling:** several write databases, each owning some sections. A router maps section -> database. Demo: 4 sections, 2 databases (2 sections each). The "before" is 1 database owning all 4. The design starts with one database and a router entry per section, so adding a second database is a config change, not a rewrite.
+- **X-scaling:** only the stateless API runs as several replicas. Hold state lives in the database, never in API memory.
+- **Caching:** Redis caches section availability only, with a TTL of 1-2 s. It is advisory. `/hold` and `/confirm` always go to the write database, so a stale number can only cause a clean "sold out" answer.
+- **Hot sections:** the load generator spreads requests evenly across sections. Skew toward one section would overload one database. That is a documented limitation, not built around.
 
 ## Demo evidence
 
-- A load generator plus metrics/logs (Prometheus, module 9) from the simulated rush.
+A load generator plus metrics/logs (Prometheus, module 9). Two separate load tests:
 
-## Open questions
+| Test   | Load                 | Before          | After              | Shows              |
+|--------|----------------------|-----------------|--------------------|--------------------|
+| Reads  | Availability queries | 1 API, no cache | 3 APIs and Redis   | x-scaling, caching |
+| Writes | Hold and confirm     | 1 database      | 2 databases        | z-scaling          |
 
-- Which components are x-scaled? (Guess: the stateless API. Maybe a separate seat-map read service.)
-- What is the caching position? (Seat-map reads are the likely candidate. The write database stays the authority.)
-- What does the demo show as the bottleneck: seat-map reads or reserve writes?
-- Hot sections (front rows) can overload one database.
-- Which menu principles from `docs/assignment.md` does this project implement?
+## Menu principles
+
+- Forced by the baseline: Scale Out Not Up, Design for at Least 2 Axes of Scale, Design to Be Monitored, Stateless Systems.
+- Added: **Isolate Faults** (kill one database, the other's sections keep selling) and **Design to Be Disabled** (a per-section kill switch the API checks).
+- Cut: Asynchronous Design, Design for Rollback. Revisit only if time is left over.
