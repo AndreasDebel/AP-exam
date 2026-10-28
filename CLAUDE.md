@@ -49,3 +49,25 @@ goal.
 added back on request, once the mechanism underneath is understood. So whenever you skip
 something a production version would have, say so in one line — in the plan, or in a code
 comment. Silent narrowing is how simple code turns into subtly wrong code.
+
+## Canvas course material
+
+The `canvas/` folder holds the downloaded course (Arkitekturprincipper i praksis). It is **gitignored (not tracked)**, so it exists only on the original machine and may be missing in a fresh clone or on another branch checkout - check that it exists before relying on it. Everything about its structure and how to use it is in `canvas/INDEX.md` - read that first.
+
+## Exam project
+
+The event booking platform decisions live in `docs/exam-project.md` - read it before working on the exam project.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues via `gh`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. See `docs/agents/domain.md`.
