@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 836" width="1000" height="836" font-family="Helvetica, Arial, sans-serif">
+<rect width="1000" height="836" fill="#fff"/>
+<defs><marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker></defs>
+<rect x="0" y="10" width="1000" height="130" fill="#f1f3f5"/>
+<line x1="0" y1="10" x2="1000" y2="10" stroke="#d0d4d8"/>
+<text x="20" y="81.0" font-size="13" font-weight="bold" fill="#666">LEVEL 0</text>
+<text x="20" y="98.0" font-size="11" fill="#888">start here</text>
+<rect x="0" y="140" width="1000" height="130" fill="#ffffff"/>
+<line x1="0" y1="140" x2="1000" y2="140" stroke="#d0d4d8"/>
+<text x="20" y="211.0" font-size="13" font-weight="bold" fill="#666">LEVEL 1</text>
+<text x="20" y="228.0" font-size="11" fill="#888">after level 0</text>
+<rect x="0" y="270" width="1000" height="166" fill="#f1f3f5"/>
+<line x1="0" y1="270" x2="1000" y2="270" stroke="#d0d4d8"/>
+<text x="20" y="359.0" font-size="13" font-weight="bold" fill="#666">LEVEL 2</text>
+<text x="20" y="376.0" font-size="11" fill="#888">after level 1</text>
+<rect x="0" y="436" width="1000" height="130" fill="#ffffff"/>
+<line x1="0" y1="436" x2="1000" y2="436" stroke="#d0d4d8"/>
+<text x="20" y="507.0" font-size="13" font-weight="bold" fill="#666">LEVEL 3</text>
+<text x="20" y="524.0" font-size="11" fill="#888">after level 2</text>
+<rect x="0" y="566" width="1000" height="130" fill="#f1f3f5"/>
+<line x1="0" y1="566" x2="1000" y2="566" stroke="#d0d4d8"/>
+<text x="20" y="637.0" font-size="13" font-weight="bold" fill="#666">LEVEL 4</text>
+<text x="20" y="654.0" font-size="11" fill="#888">after level 3</text>
+<rect x="0" y="696" width="1000" height="130" fill="#ffffff"/>
+<line x1="0" y1="696" x2="1000" y2="696" stroke="#d0d4d8"/>
+<text x="20" y="767.0" font-size="13" font-weight="bold" fill="#666">LEVEL 5</text>
+<text x="20" y="784.0" font-size="11" fill="#888">after level 4</text>
+<line x1="0" y1="826" x2="1000" y2="826" stroke="#d0d4d8"/>
+<polyline points="530,115 530,158" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="230,158 530,158" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="230,158 230,185" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="530,158 530,185" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="530,245 530,288" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="230,288 830,288" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="230,288 230,315" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="530,288 530,315" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="830,288 830,315" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="230,411 230,454" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="530,375 530,454" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="230,454 790,454" fill="none" stroke="#222" stroke-width="2"/>
+<polyline points="230,454 230,481" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="790,454 790,481" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="870,411 870,481" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="230,541 230,611" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="360,511 580,511 580,741" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<polyline points="230,671 230,714 480,714 480,741" fill="none" stroke="#222" stroke-width="2" marker-end="url(#a)"/>
+<circle cx="530" cy="158" r="4.5" fill="#222"/>
+<circle cx="530" cy="288" r="4.5" fill="#222"/>
+<circle cx="530" cy="454" r="4.5" fill="#222"/>
+<circle cx="230" cy="454" r="4.5" fill="#222"/>
+<rect x="400" y="55" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="530" y="79" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#4</text>
+<text x="530" y="100" text-anchor="middle" font-size="13" fill="#111">API with hold and confirm on one database</text>
+<rect x="100" y="185" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="230" y="209" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#5</text>
+<text x="230" y="230" text-anchor="middle" font-size="13" fill="#111">Booking UI</text>
+<rect x="400" y="185" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="530" y="209" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#6</text>
+<text x="530" y="230" text-anchor="middle" font-size="13" fill="#111">Run on Minikube</text>
+<rect x="100" y="315" width="260" height="96" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="230" y="339" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#7</text>
+<text x="230" y="360" text-anchor="middle" font-size="13" fill="#111">Prometheus metrics</text>
+<text x="230" y="382" text-anchor="middle" font-size="12" font-style="italic" fill="#555">scope open: Prometheus only, or</text>
+<text x="230" y="398" text-anchor="middle" font-size="12" font-style="italic" fill="#555">also Grafana/logs/traces?</text>
+<rect x="400" y="315" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="530" y="339" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#8</text>
+<text x="530" y="360" text-anchor="middle" font-size="13" fill="#111">Load generator</text>
+<rect x="700" y="315" width="260" height="96" rx="5" fill="#fff" stroke="#111" stroke-width="2" stroke-dasharray="8 5"/>
+<text x="830" y="339" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#9</text>
+<text x="830" y="360" text-anchor="middle" font-size="13" fill="#111">Redis caching of availability</text>
+<text x="830" y="382" text-anchor="middle" font-size="12" font-style="italic" fill="#555">may be postponed to last;</text>
+<text x="830" y="398" text-anchor="middle" font-size="12" font-style="italic" fill="#555">#10 then needs rework</text>
+<rect x="100" y="481" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="230" y="505" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#11</text>
+<text x="230" y="526" text-anchor="middle" font-size="13" fill="#111">Z-scaling with before/after</text>
+<rect x="700" y="481" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="830" y="505" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#10</text>
+<text x="830" y="526" text-anchor="middle" font-size="13" fill="#111">X-scaling with before/after</text>
+<rect x="100" y="611" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="230" y="635" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#12</text>
+<text x="230" y="656" text-anchor="middle" font-size="13" fill="#111">Per-section kill switch and fault isolation</text>
+<rect x="400" y="741" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
+<text x="530" y="765" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#13</text>
+<text x="530" y="786" text-anchor="middle" font-size="13" fill="#111">UML class, object and deploy diagrams</text>
+</svg>
