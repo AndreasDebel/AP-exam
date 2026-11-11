@@ -50,6 +50,19 @@ added back on request, once the mechanism underneath is understood. So whenever 
 something a production version would have, say so in one line — in the plan, or in a code
 comment. Silent narrowing is how simple code turns into subtly wrong code.
 
+## Repo structure
+
+- `ui/` - Blazor WebAssembly booking UI (`EventBooking.Ui`), the walking skeleton's front end (issue #5).
+- `docs/assignment.md` - what the exam requires, independent of our system.
+- `docs/exam-project.md` - decisions for our event booking platform.
+- `docs/visuals/` - architecture sketches and diagrams (whiteboard photos, `.svg`, `.drawio`). Commit the editable source alongside any exported image; the repo is public, so no faces or personal data.
+- `docs/agents/` - how agent skills use the issue tracker, labels and domain docs.
+- `GLOSSARY.md` - domain terms; use them in code and docs.
+- `.claude/` - shared Claude Code settings.
+- `canvas/` - local-only course material (see below).
+
+`main` is protected: work on a `feature/<name>` branch and merge via PR. There is no `dev` branch.
+
 ## Canvas course material
 
 The `canvas/` folder holds the downloaded course (Arkitekturprincipper i praksis). It is **gitignored (not tracked)**, so it exists only on the original machine and may be missing in a fresh clone or on another branch checkout - check that it exists before relying on it. Everything about its structure and how to use it is in `canvas/INDEX.md` - read that first.
