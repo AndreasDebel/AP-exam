@@ -50,7 +50,7 @@
 <circle cx="230" cy="454" r="4.5" fill="#222"/>
 <rect x="400" y="55" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
 <text x="530" y="79" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#4</text>
-<text x="530" y="100" text-anchor="middle" font-size="13" fill="#111">API with hold and confirm on one database</text>
+<text x="530" y="100" text-anchor="middle" font-size="13" fill="#111">API with buy on one database</text>
 <rect x="100" y="185" width="260" height="60" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>
 <text x="230" y="209" text-anchor="middle" font-size="16" font-weight="bold" fill="#111">#5</text>
 <text x="230" y="230" text-anchor="middle" font-size="13" fill="#111">Booking UI</text>
