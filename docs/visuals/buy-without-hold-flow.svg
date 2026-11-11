@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 920" width="1000" height="920" font-family="Helvetica, Arial, sans-serif">
+<rect width="1000" height="920" fill="#fff"/>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#222"/></marker>
+  <marker id="r" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c92a2a"/></marker>
+</defs>
+
+<text x="500" y="36" text-anchor="middle" font-size="20" font-weight="bold" fill="#111">Buy without hold: one read, one write</text>
+
+<!-- bands -->
+<rect x="0" y="120" width="1000" height="400" fill="#ebfbee"/>
+<line x1="0" y1="120" x2="1000" y2="120" stroke="#d0d4d8"/>
+<text x="20" y="142" font-size="13" font-weight="bold" fill="#2b8a3e">HAPPY PATH</text>
+<rect x="0" y="520" width="1000" height="300" fill="#fff5f5"/>
+<line x1="0" y1="520" x2="1000" y2="520" stroke="#d0d4d8"/>
+<text x="20" y="542" font-size="13" font-weight="bold" fill="#c92a2a">SAD PATH: sold out since the UI read</text>
+<line x1="0" y1="820" x2="1000" y2="820" stroke="#d0d4d8"/>
+
+<!-- lifelines -->
+<g font-size="15" font-weight="bold" fill="#111" text-anchor="middle">
+  <rect x="90" y="60" width="120" height="40" rx="5" fill="#fff" stroke="#111" stroke-width="2"/><text x="150" y="85">UI</text>
+  <rect x="310" y="60" width="120" height="40" rx="5" fill="#fff" stroke="#111" stroke-width="2"/><text x="370" y="85">API</text>
+  <rect x="500" y="60" width="120" height="40" rx="5" fill="#fff" stroke="#111" stroke-width="2"/><text x="560" y="85">Redis</text>
+  <rect x="690" y="60" width="120" height="40" rx="5" fill="#fff" stroke="#111" stroke-width="2"/><text x="750" y="85">Write DB</text>
+</g>
+<g stroke="#999" stroke-dasharray="4 4">
+  <line x1="150" y1="100" x2="150" y2="810"/>
+  <line x1="370" y1="100" x2="370" y2="810"/>
+  <line x1="560" y1="100" x2="560" y2="810"/>
+  <line x1="750" y1="100" x2="750" y2="810"/>
+</g>
+
+<g font-size="12" fill="#111" text-anchor="middle">
+<!-- happy: read availability -->
+<line x1="150" y1="170" x2="370" y2="170" stroke="#222" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="260" y="163">GET /sections/{id}/availability</text>
+<line x1="370" y1="200" x2="560" y2="200" stroke="#222" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="465" y="193">cached availability?</text>
+<line x1="560" y1="230" x2="370" y2="230" stroke="#222" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="465" y="223">"12 free" (TTL 1-2 s)</text>
+<line x1="370" y1="260" x2="150" y2="260" stroke="#222" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="260" y="253">"12 free"</text>
+
+<rect x="50" y="275" width="200" height="34" rx="4" fill="#fff9db" stroke="#e0c341"/>
+<text x="150" y="296">buyer picks n (1-4), presses Pay</text>
+
+<!-- happy: buy -->
+<line x1="150" y1="335" x2="370" y2="335" stroke="#222" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="260" y="328">POST /buy {buyer, section, n}</text>
+<rect x="295" y="345" width="150" height="26" rx="4" fill="#fff9db" stroke="#e0c341"/>
+<text x="370" y="362">router: section → DB</text>
+<line x1="370" y1="395" x2="750" y2="395" stroke="#222" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="560" y="388">one transaction</text>
+
+<rect x="770" y="375" width="215" height="88" rx="4" fill="#fff" stroke="#2b8a3e"/>
+<g text-anchor="start" font-family="Consolas, monospace" font-size="12">
+  <text x="780" y="394">BEGIN</text>
+  <text x="780" y="411">SELECT ... FOR UPDATE</text>
+  <text x="780" y="428">capacity - sold &gt;= n</text>
+  <text x="780" y="445">UPDATE sold = sold + n</text>
+  <text x="780" y="458" font-weight="bold" fill="#2b8a3e">COMMIT</text>
+</g>
+
+<line x1="750" y1="475" x2="370" y2="475" stroke="#222" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="560" y="468">ok</text>
+<line x1="370" y1="500" x2="150" y2="500" stroke="#2b8a3e" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="260" y="493" fill="#2b8a3e" font-weight="bold">200 "you bought n places"</text>
+
+<!-- sad -->
+<rect x="50" y="555" width="410" height="30" rx="4" fill="#fff9db" stroke="#e0c341"/>
+<text x="255" y="575">same read as above: UI showed "12 free", buyer chose n</text>
+<text x="255" y="600" fill="#666">... meanwhile other buyers bought the rest ...</text>
+
+<line x1="150" y1="630" x2="370" y2="630" stroke="#222" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="260" y="623">POST /buy {buyer, section, n}</text>
+<line x1="370" y1="665" x2="750" y2="665" stroke="#222" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="560" y="658">one transaction</text>
+
+<rect x="770" y="645" width="215" height="72" rx="4" fill="#fff" stroke="#c92a2a"/>
+<g text-anchor="start" font-family="Consolas, monospace" font-size="12">
+  <text x="780" y="664">BEGIN</text>
+  <text x="780" y="681">SELECT ... FOR UPDATE</text>
+  <text x="780" y="698">capacity - sold &lt; n</text>
+  <text x="780" y="712" font-weight="bold" fill="#c92a2a">ROLLBACK</text>
+</g>
+
+<line x1="750" y1="730" x2="370" y2="730" stroke="#222" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>
+<text x="560" y="723">"only k left"</text>
+<line x1="370" y1="755" x2="150" y2="755" stroke="#c92a2a" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#r)"/>
+<text x="260" y="748" fill="#c92a2a" font-weight="bold">409 "only k places left"</text>
+
+<rect x="40" y="770" width="260" height="30" rx="4" fill="#fff9db" stroke="#e0c341"/>
+<text x="170" y="790">UI shows k; buyer retries with fewer or leaves</text>
+</g>
+
+<!-- footer -->
+<g font-size="12" fill="#444">
+  <text x="20" y="850"><tspan font-weight="bold">Dropped vs. the hold design:</tspan> hold table, hold_until, lazy expiry, countdown, "hold expired", the /hold endpoint.</text>
+  <text x="20" y="872"><tspan font-weight="bold">Cost:</tspan> the sad path can hit at payment time, after the buyer decided. The UI number is stale by Redis TTL + however long the page was open.</text>
+  <text x="20" y="894"><tspan font-weight="bold">Unchanged:</tspan> the section row lock in the write DB keeps sold &lt;= capacity. On a cache miss the API reads the DB instead of Redis (not drawn).</text>
+</g>
+</svg>
