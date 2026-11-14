@@ -1,0 +1,5 @@
+# Map: Namespace: booking. The 00- prefix makes it apply first.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: booking
