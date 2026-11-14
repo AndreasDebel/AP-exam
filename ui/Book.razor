@@ -1,33 +1,103 @@
+@using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components.Web
+@* Program.cs registers this HttpClient with the API's address as BaseAddress *@
+@inject HttpClient Http
 
-<h1>@eventName</h1>
-<p>@eventDate. Tickets left: @ticketsLeft</p>
+<style>
+    body { margin: 0; background: #e9eae6; color: #141414; font-family: system-ui, sans-serif; }
+    main { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
 
-@* @bind copies the textbox into attendeeName every time the text changes *@
-<input @bind="attendeeName" @bind:event="oninput" placeholder="Your name" />
+    .stage { background: #141414; color: #e9eae6; text-align: center; padding: 16px; font-weight: 700; letter-spacing: 0.2em; }
+    .sections { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
+    .section { background: white; border: 3px solid #c4c6bf; padding: 20px; font: inherit; cursor: pointer; }
+    .section.selected { border-color: #b8401c; }
+    .section strong { display: block; font-size: 20px; }
 
-@* @onclick runs BookTicket() each time the visitor clicks the button *@
-<button @onclick="BookTicket">Book ticket</button>
+    .counts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .count { background: white; border: 3px solid #c4c6bf; padding: 12px; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer; }
+    .count.selected { border-color: #b8401c; }
 
-@if (bookedName != "")
-{
-    <p>Booked: @bookedName</p>
-}
+    .buy { width: 100%; background: #b8401c; color: white; border: none; padding: 16px; font: inherit; font-size: 18px; font-weight: 700; cursor: pointer; }
+</style>
+
+<main>
+    <div class="stage">STAGE</div>
+
+    @* One box per section. The free count is only a hint: it may be out of date the moment it is shown. The server decides at Buy. *@
+    <div class="sections">
+        @foreach (var id in sectionIds)
+        {
+            @* @onclick runs when the buyer clicks this box: it makes this section the selected one *@
+            <button class="section @(id == sectionId ? "selected" : "")" @onclick="() => sectionId = id">
+                <strong>Section @id</strong>
+                @free[id] free
+            </button>
+        }
+    </div>
+
+    <p>Places:</p>
+    <div class="counts">
+        @foreach (var n in counts)
+        {
+            @* @onclick runs when the buyer clicks this box: it makes n the number of places to buy *@
+            <button class="count @(n == count ? "selected" : "")" @onclick="() => count = n">@n</button>
+        }
+    </div>
+
+    @* @onclick runs Buy() each time the buyer clicks the button. It stands in for payment. *@
+    <button class="buy" @onclick="Buy">Buy @count in section @sectionId</button>
+
+    <p>@serverAnswer</p>
+</main>
 
 @code {
-    string eventName = "Spring Concert";
-    string eventDate = "2027-05-20";
-    int ticketsLeft = 50;
+    // Dropped on purpose: login, buyer name, validation, error messages, loading spinner,
+    // and live refresh of the free counts. The sections are hardcoded because the API has no list endpoint.
+    int[] sectionIds = { 1, 2, 3, 4 };
+    Dictionary<int, int> free = new() { [1] = 0, [2] = 0, [3] = 0, [4] = 0 };
+    int[] counts = { 1, 2, 3, 4 }; // a buy is 1 to 4 places
 
-    string attendeeName = "";
-    string bookedName = "";
+    int sectionId = 1;
+    int count = 1;
+    string serverAnswer = "";
 
-    void BookTicket()
+    // Blazor calls this once, when the page first appears.
+    protected override async Task OnInitializedAsync()
     {
-        // TODO: replace these three lines with a call to the API (next ticket).
-        // Skipped on purpose: no check for an empty name or for tickets running out.
-        ticketsLeft = ticketsLeft - 1;
-        bookedName = attendeeName;
-        attendeeName = "";
+        await LoadFree();
     }
+
+    // Asks the API for the free count of every section, one call per section.
+    async Task LoadFree()
+    {
+        foreach (var id in sectionIds)
+        {
+            // LOOK HERE! HTTP call to the API: GET /sections/{id} in api/Program.cs
+            var availability = await Http.GetFromJsonAsync<Availability>($"sections/{id}");
+            free[id] = availability!.Free;
+        }
+    }
+
+    async Task Buy()
+    {
+        // LOOK HERE! HTTP call to the API: POST /sections/{id}/buy in api/Program.cs
+        var response = await Http.PostAsJsonAsync($"sections/{sectionId}/buy", new { count });
+
+        if (response.IsSuccessStatusCode)
+        {
+            serverAnswer = $"Bought {count} places in section {sectionId}.";
+        }
+        else
+        {
+            // The server refused (409) and says why, e.g. "only 2 places left". Its answer wins over the number on screen.
+            // The API sends the text as a JSON string ("..." in quotes), so read it as JSON.
+            serverAnswer = (await response.Content.ReadFromJsonAsync<string>())!;
+        }
+
+        // Read availability again so the free counts match what the server now has.
+        await LoadFree();
+    }
+
+    // The shape of the API's answer to GET /sections/{id}: { "id": 1, "free": 42 }
+    record Availability(int Id, int Free);
 }

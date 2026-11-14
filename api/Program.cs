@@ -1,7 +1,13 @@
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// The Blazor UI runs on another port, so the browser only lets it call us if we allow it (CORS).
+// Dropped on purpose: any origin is allowed. Production would allow only the UI's address.
+builder.Services.AddCors();
+
 var app = builder.Build();
+app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
 // Router: section id -> connection string
 var router = builder.Configuration.GetSection("Sections").Get<Dictionary<string, string>>()!;
