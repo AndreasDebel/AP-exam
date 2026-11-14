@@ -1,7 +1,21 @@
 using Npgsql;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("eventbooking-api"))
+    .WithMetrics(m => m
+        .AddMeter("Microsoft.AspNetCore.Hosting") // tager de HTTP-metrics med, som ASP.NET Core selv måler
+        .AddPrometheusExporter());
+
 var app = builder.Build();
+
+// Prometheus
+app.MapPrometheusScrapingEndpoint() // serverer /metrics
+    .DisableHttpMetrics(); // gør, at Prometheus’ egne scrapes af /metrics ikke tælles med i vores request-tal
 
 // Router: section id -> connection string
 var router = builder.Configuration.GetSection("Sections").Get<Dictionary<string, string>>()!;
