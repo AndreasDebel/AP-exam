@@ -8,5 +8,9 @@ docker exec -i booking-db psql -U postgres -d booking < api/schema.sql
 Opdatér imaget (hvis koden i api/ eller api/appsettings.json ændres):
 
 ```
+docker login
+```
+```
 dotnet publish api /t:PublishContainer --os linux --arch x64 -p:ContainerRegistry=docker.io -p:ContainerRepository=srenits/eventbooking-api
 ```
+`dotnet publish` kræver ingen dockerfil, modsat `docker buildx` — har gjort det sådan for at minimere kompleksitet.
