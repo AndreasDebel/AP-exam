@@ -12,12 +12,15 @@ spec:
   template:
     metadata:
       labels:
-        app: api # services/api.yaml finds the pods by this label.
+        app: api # services/api.yaml finds the pods by this label. Prometheus uses this label.
     spec:
       containers:
         - name: api
           # LOOK HERE! The code is api/Program.cs, published to Docker Hub with the command in api/README.md.
           image: srenits/eventbooking-api:latest
+          ports:
+            - name: http
+              containerPort: 8080 # Port 8080 is standard for .NET-container-images, but check targetPort in services/api.yaml – they have to match. If targetPort isn't set explicitly it's 8080.
           imagePullPolicy: Always # Pull on every pod start, so a re-published :latest is picked up.
           # Dropped on purpose: a readinessProbe. The API has no /health yet. Add back with X-scaling (#10).
           env:
