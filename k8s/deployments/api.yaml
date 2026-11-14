@@ -1,0 +1,45 @@
+# Deployment: api (-> ReplicaSet -> 3 pods). Its Service is services/api.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: booking
+spec:
+  replicas: 3 # X-scaling is this number.
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api # services/api.yaml finds the pods by this label.
+    spec:
+      containers:
+        - name: api
+          # LOOK HERE! The code is api/Program.cs, published to Docker Hub with the command in api/README.md.
+          image: srenits/eventbooking-api:latest
+          imagePullPolicy: Always # Pull on every pod start, so a re-published :latest is picked up.
+          # Dropped on purpose: a readinessProbe. The API has no /health yet. Add back with X-scaling (#10).
+          env:
+            # Overrides "Sections" in api/appsettings.json (localhost). The API's router reads these.
+            # All four point at database a; splitting them across a and b is z-scaling (#11).
+            - name: Sections__1
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # secrets/db-credentials.yaml
+                  key: a
+            - name: Sections__2
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: a
+            - name: Sections__3
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: a
+            - name: Sections__4
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: a

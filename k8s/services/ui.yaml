@@ -1,0 +1,13 @@
+# Service: ui (NodePort 30081). Points at the pod from deployments/ui.yaml.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  namespace: booking
+spec:
+  type: NodePort
+  selector:
+    app: ui
+  ports:
+    - port: 80
+      nodePort: 30081

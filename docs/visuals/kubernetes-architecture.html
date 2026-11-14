@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event booking platform - arkitekturprincipper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  .scroll { overflow-x: auto; }
+  .scroll:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .scroll svg { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--svg-font); }
+  .icon-svg { width: 34px; height: 24px; flex: none; }
+  .box, .icon-svg [class] { stroke-width: var(--sw, 2); }
+  .external { fill: var(--c-external); stroke: var(--s-external); }
+  .container { fill: var(--c-container); stroke: var(--s-container); }
+  .k8s { fill: var(--c-k8s); stroke: var(--s-k8s); }
+  .cache { fill: var(--c-cache); stroke: var(--s-cache); }
+  .db { fill: var(--c-db); stroke: var(--s-db); }
+  .control-plane { fill: var(--c-cp); stroke: var(--s-cp); }
+  .agent { fill: var(--c-agent); stroke: var(--s-agent); }
+  .shine { fill: #fff; fill-opacity: 0.2; stroke: none; }
+  .rim { fill: #fff; fill-opacity: 0.2; stroke: #fff; stroke-opacity: 0.55; stroke-width: 1.5; }
+  .icon { fill: var(--on-fill); stroke: none; }
+  .glyph { fill: var(--on-fill); font-family: ui-monospace, monospace; font-size: 15px; font-weight: bold; }
+  .name { fill: var(--on-fill); font-size: 16px; font-weight: var(--name-weight, 700); text-anchor: middle; }
+  .tech { fill: var(--on-fill-2); font-size: 13px; text-anchor: middle; }
+  .arrow { stroke: var(--ink); stroke-width: 1.5; fill: none; marker-end: url(#head); }
+  .head-fill { fill: var(--ink); }
+  .label { fill: var(--ink); font-size: 13px; text-anchor: middle; dominant-baseline: middle; stroke: var(--bg-diagram); stroke-width: 5; paint-order: stroke; }
+  .colhead { fill: var(--ink-2); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .select-arrow { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 5 4; fill: none; marker-end: url(#head); }
+  .boundary { fill: none; stroke: var(--boundary); stroke-width: 1.5; stroke-dasharray: 8 5; }
+  .boundary-name { fill: var(--ink-2); font-size: 13px; font-weight: 700; }
+  .scaling { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; }
+  .scaling-name { fill: var(--accent); font-size: 15px; font-weight: 700; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 0; padding: 0; list-style: none; font-size: 14px; }
+  .legend li { display: flex; align-items: center; gap: 8px; }
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  :root {
+    --bg: #e9eae6; --bg-diagram: #e9eae6; --paper: #f4f5f1; --ink: #141414; --ink-2: #4a4b47; --boundary: #7d7f78; --rule: #c4c6bf; --focus: #b8401c;
+    --accent: #b8401c; --on-fill: #ffffff; --on-fill-2: #e7e8e3; --svg-font: 'Archivo', system-ui, sans-serif; --sw: 1.5; --name-weight: 600;
+    --c-person: #141414; --s-person: #000000; --c-external: #5c5d58; --s-external: #3d3e3a;
+    --c-container: #29335c; --s-container: #1a2140; --c-k8s: #3d6f91; --s-k8s: #284d67;
+    --c-cache: #b5561b; --s-cache: #873e12; --c-db: #a33a1d; --s-db: #742912; --c-cp: #4b4c48; --s-cp: #333430; --c-agent: #6b3a5d; --s-agent: #4a2740;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.6 'Archivo', system-ui, sans-serif; }
+  .shell { display: grid; grid-template-columns: 290px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+  aside { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 32px 32px; border-right: 3px dashed var(--ink); display: flex; flex-direction: column; gap: 20px; }
+  aside h1 { font: 600 13px/1.4 'Archivo', system-ui, sans-serif; color: var(--ink-2); margin: 0; }
+  aside p { margin: 8px 0 0; font-size: 15px; color: var(--ink-2); }
+  aside nav { display: flex; flex-direction: column; gap: 2px; }
+  aside nav a { color: var(--ink); text-decoration: none; padding: 5px 0; font-size: 16px; border-bottom: 1px solid var(--rule); transition: color .2s, padding-left .25s cubic-bezier(.16,1,.3,1); }
+  aside nav a:hover, aside nav a:focus-visible, aside nav a[aria-current] { color: var(--accent); padding-left: 8px; }
+  aside nav a[aria-current] { font-weight: 600; }
+  aside nav a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  main { padding: 56px clamp(24px, 5vw, 80px) 120px; min-width: 0; }
+  section { margin-bottom: 112px; scroll-margin-top: 32px; }
+  h2 { font: 900 clamp(40px, 5vw, 72px)/0.95 'Archivo', system-ui, sans-serif; font-stretch: 72%; text-transform: uppercase; letter-spacing: -0.025em; margin: 0 0 12px; text-wrap: balance; }
+  .legend-inline { margin: 20px 0 0; }
+  .pager a { color: var(--accent); }
+  .nav-group { font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 12px 0 0; }
+  @media (max-width: 860px) {
+    .shell { display: block; }
+    /* display: contents lets the nav stick to the top of the whole page, not just the short header */
+    aside { display: contents; }
+    aside > div { padding: 32px 24px 8px; }
+    aside nav { position: sticky; top: 0; z-index: 5; flex-direction: row; gap: 24px; padding: 0 24px; overflow-x: auto; background: var(--bg); border-bottom: 1px solid var(--rule); }
+    aside nav a { border: 0; padding: 10px 0; white-space: nowrap; }
+    aside nav a:hover, aside nav a:focus-visible, aside nav a[aria-current] { padding-left: 0; }
+    section { scroll-margin-top: 64px; }
+    /* the diagrams are 880px wide and scroll sideways inside their box */
+    .nav-group { margin: 0; align-self: center; white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+<aside>
+  <div><h1>Eksamensprojekt · Arkitekturprincipper i praksis</h1></div>
+  <nav aria-label="Indhold">
+    <p class="nav-group">Tegninger</p>
+    <a href="#kubernetes">I Kubernetes</a><a href="#objects">Kubernetes-objekter</a><a href="#internals">Bag kulisserne</a></nav>
+</aside>
+<main>
+  <section id="kubernetes"><h2>I Kubernetes</h2><div class="scroll" tabindex="0" role="region" aria-label="Kubernetes deployment diagram, kan rulles sidelæns på små skærme"><!-- the arrowhead marker "head" is defined in this first diagram and reused by the other two --><svg viewBox="0 0 1100 610" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="deployment-title deployment-desc">
+  <title id="deployment-title">Event booking platform, Kubernetes deployment</title>
+  <desc id="deployment-desc">The buyer's browser reaches the cluster through two NodePort Services: one for the UI files served by an nginx pod, one for the API. The API runs as three pods and reads a ConfigMap and a Secret. It talks to a Redis pod and to two PostgreSQL pods that each have their own volume. A Prometheus pod scrapes the API pods. A load generator calls the API Service.</desc>
+  <defs>
+    <marker id="head" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" class="head-fill"/>
+    </marker>
+  </defs>
+
+  <!-- nested boundaries: the laptop holds the cluster, the namespace holds everything we deploy -->
+  <rect class="boundary" x="190" y="20" width="900" height="570" rx="10"/>
+  <text class="boundary-name" x="206" y="44">Developer laptop: Minikube, one node</text>
+  <rect class="boundary" x="280" y="64" width="796" height="511" rx="10"/>
+  <text class="boundary-name" x="296" y="88">Namespace: booking</text>
+
+  <!-- scaling axes -->
+  <rect class="scaling" x="520" y="225" width="240" height="195" rx="8"/>
+  <text class="scaling-name" x="532" y="408">x-scaling</text>
+  <rect class="scaling" x="818" y="205" width="244" height="351" rx="8"/>
+  <text class="scaling-name" x="830" y="228">z-scaling</text>
+
+  <!-- arrows first, so shapes sit on top; each label sits at the middle of its arrow -->
+  <path class="arrow" d="M150,265 L295,138"/>
+  <text class="label" x="222" y="203">downloads UI</text>
+
+  <path class="arrow" d="M150,305 L295,310"/>
+  <text class="label" x="222" y="293">HTTP/JSON, CORS</text>
+
+  <path class="arrow" d="M150,455 L304,338"/>
+  <text class="label" x="225" y="395">HTTP/JSON</text>
+
+  <path class="arrow" d="M470,135 L540,135"/>
+  <text class="label" x="505" y="122">forwards</text>
+
+  <path class="arrow" d="M470,310 L540,305"/>
+  <text class="label" x="505" y="296">forwards</text>
+
+  <path class="arrow" d="M460,455 L520,405"/>
+  <text class="label" x="440" y="424">scrapes /metrics</text>
+
+  <path class="arrow" d="M572,420 L572,445"/>
+  <path class="arrow" d="M735,420 L735,445"/>
+
+  <path class="arrow" d="M760,250 L850,172"/>
+  <text class="label" x="770" y="198">RESP/TCP</text>
+
+  <path class="arrow" d="M760,300 L830,270"/>
+  <text class="label" x="795" y="285">SQL</text>
+
+  <path class="arrow" d="M760,350 L830,433"/>
+  <text class="label" x="795" y="393">SQL</text>
+
+  <path class="arrow" d="M940,296 L940,314"/>
+  <path class="arrow" d="M940,462 L940,480"/>
+
+  <!-- outside the cluster -->
+  <rect class="box external" x="10" y="250" width="140" height="80" rx="8"/>
+  <path class="shine" d="M10,270 V258 a8,8 0 0 1 8,-8 H142 a8,8 0 0 1 8,8 V270 Z"/>
+  <circle class="icon" cx="24" cy="260" r="3"/>
+  <circle class="icon" cx="36" cy="260" r="3"/>
+  <circle class="icon" cx="48" cy="260" r="3"/>
+  <text class="name" x="80" y="296.5">Buyer's browser</text>
+  <text class="tech" x="80" y="314.5">runs the UI</text>
+
+  <rect class="box external" x="10" y="420" width="140" height="70" rx="6"/>
+  <text class="glyph" x="20" y="438">&gt;_</text>
+  <text class="name" x="80" y="462.5">Load generator</text>
+  <text class="tech" x="80" y="480.5">external</text>
+
+
+  <!-- Services: how traffic gets in. NodePort opens a port on the node -->
+  <polygon class="box k8s" points="311,100 454,100 470,135 454,170 311,170 295,135"/>
+  <text class="name" x="382.5" y="131.5">Service: ui</text>
+  <text class="tech" x="382.5" y="149.5">NodePort 30081</text>
+
+  <polygon class="box k8s" points="311,265 454,265 470,310 454,355 311,355 295,310"/>
+  <text class="name" x="382.5" y="298">Service: api</text>
+  <text class="tech" x="382.5" y="316">NodePort 30080</text>
+  <text class="tech" x="382.5" y="333">balances per connection</text>
+
+
+  <!-- pods are capsules -->
+  <rect class="box container" x="540" y="95" width="180" height="80" rx="22"/>
+  <text class="name" x="630" y="131.5">Pod: ui</text>
+  <text class="tech" x="630" y="149.5">nginx, replicas = 1</text>
+
+  <!-- three stacked capsules = three pods of the same API -->
+  <rect class="box container" x="560" y="270" width="180" height="110" rx="22" opacity="0.45"/>
+  <rect class="box container" x="550" y="260" width="180" height="110" rx="22" opacity="0.7"/>
+  <rect class="box container" x="540" y="250" width="180" height="110" rx="22"/>
+  <text class="name" x="630" y="293">Pods: api</text>
+  <text class="tech" x="630" y="311">ASP.NET Core</text>
+  <text class="tech" x="630" y="328">replicas = 3</text>
+
+  <polygon class="box k8s" points="509,445 636,445 650,475 636,505 509,505 495,475"/>
+  <text class="name" x="572.5" y="471.5">section-routing</text>
+  <text class="tech" x="572.5" y="489.5">ConfigMap (file)</text>
+
+  <polygon class="box k8s" points="672,445 799,445 813,475 799,505 672,505 658,475"/>
+  <text class="name" x="735.5" y="471.5">db-credentials</text>
+  <text class="tech" x="735.5" y="489.5">Secret (file)</text>
+
+  <rect class="box container" x="300" y="440" width="160" height="70" rx="22"/>
+  <text class="name" x="380" y="471.5">Pod: prometheus</text>
+  <text class="tech" x="380" y="489.5">Prometheus</text>
+
+  <rect class="box cache" x="830" y="100" width="220" height="70" rx="22"/>
+  <text class="name" x="940" y="131.5">Pod: redis</text>
+  <text class="tech" x="940" y="149.5">no volume</text>
+
+  <rect class="box db" x="830" y="238" width="220" height="58" rx="22"/>
+  <text class="name" x="940" y="263.5">Pod: postgres-a</text>
+  <text class="tech" x="940" y="281.5">StatefulSet, sections 1-2</text>
+
+  <path class="box k8s" d="M830,323 A110,9 0 0 1 1050,323 V373 A110,9 0 0 1 830,373 Z"/>
+  <ellipse class="rim" cx="940" cy="323" rx="110" ry="9"/>
+  <text class="name" x="940" y="349">PVC: sections 1-2</text>
+  <text class="tech" x="940" y="367">survives pod restarts</text>
+
+  <rect class="box db" x="830" y="404" width="220" height="58" rx="22"/>
+  <text class="name" x="940" y="429.5">Pod: postgres-b</text>
+  <text class="tech" x="940" y="447.5">StatefulSet, sections 3-4</text>
+
+  <path class="box k8s" d="M830,489 A110,9 0 0 1 1050,489 V539 A110,9 0 0 1 830,539 Z"/>
+  <ellipse class="rim" cx="940" cy="489" rx="110" ry="9"/>
+  <text class="name" x="940" y="515">PVC: sections 3-4</text>
+  <text class="tech" x="940" y="533">survives pod restarts</text>
+
+</svg></div><ul class="legend legend-inline" aria-label="Symboler i denne tegning">
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="container" x="2" y="4" width="30" height="16" rx="8"/></svg>Pod</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="cache" x="2" y="3" width="30" height="18" rx="3"/><path class="icon" d="M19,5 L13,13 h4 l-2,6 l7,-9 h-4 z"/></svg>Cache</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><path class="db" d="M6,6 A11,4 0 0 1 28,6 V19 A11,4 0 0 1 6,19 Z"/><ellipse class="rim" cx="17" cy="6" rx="11" ry="4"/></svg>Database, volume</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><polygon class="k8s" points="9,3 25,3 32,12 25,21 9,21 2,12"/></svg>Kubernetes-objekt</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="boundary" x="3" y="3" width="28" height="18" rx="3"/></svg>Grænse</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="scaling" x="3" y="3" width="28" height="18" rx="3"/></svg>Skaleringsakse</li>
+</ul></section>
+  <section id="objects"><h2>Kubernetes-objekter</h2><div class="scroll" tabindex="0" role="region" aria-label="Kubernetes objects diagram, kan rulles sidelæns på små skærme"><svg viewBox="0 0 1100 712" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="objects-title objects-desc">
+  <title id="objects-title">Kubernetes objects in the booking namespace</title>
+  <desc id="objects-desc">One row per thing we deploy: ui, api, redis, postgres-a, postgres-b and prometheus. Each row shows its Service, its Deployment or StatefulSet, its pods, and what the pods use: ConfigMaps, a Secret, or a PersistentVolumeClaim bound to a PersistentVolume. Each Deployment (ui, api, redis and prometheus) creates a ReplicaSet that keeps its pods alive; the api one keeps three. The two StatefulSets have no ReplicaSet and create their pods directly.</desc>
+
+  <rect class="boundary" x="8" y="14" width="1084" height="684" rx="10"/>
+  <text class="boundary-name" x="24" y="36">Node: minikube</text>
+  <rect class="boundary" x="128" y="70" width="840" height="614" rx="10"/>
+  <text class="boundary-name" x="806" y="88">Namespace: booking</text>
+
+  <!-- column headers: the shape shows what it is, the header names the kind -->
+  <text class="colhead" x="67" y="58">NodePort</text>
+  <text class="colhead" x="207" y="58">Service</text>
+  <text class="colhead" x="375" y="58">Deployment / StatefulSet</text>
+  <text class="colhead" x="525" y="58">ReplicaSet</text>
+  <text class="colhead" x="672" y="58">Pod</text>
+  <text class="colhead" x="870" y="58">Storage and config</text>
+  <text class="colhead" x="1035" y="58">Volume (PV)</text>
+
+  <!-- arrows first, so shapes sit on top -->
+  <path class="select-arrow" d="M207,100 L207,84 L672,84 L672,100"/>
+  <text class="label" x="440" y="84">selects pods by label</text>
+  <path class="select-arrow" d="M207,200 L207,184 L672,184 L672,200"/>
+  <text class="label" x="440" y="184">selects pods by label</text>
+  <path class="select-arrow" d="M207,300 L207,284 L672,284 L672,300"/>
+  <text class="label" x="440" y="284">selects pods by label</text>
+  <path class="select-arrow" d="M207,400 L207,384 L672,384 L672,400"/>
+  <text class="label" x="440" y="384">selects pods by label</text>
+  <path class="select-arrow" d="M207,500 L207,484 L672,484 L672,500"/>
+  <text class="label" x="440" y="484">selects pods by label</text>
+
+  <path class="arrow" d="M115,135 L140,135"/>
+  <path class="arrow" d="M115,235 L140,235"/>
+  <path class="arrow" d="M445,135 L475,135"/>
+  <path class="arrow" d="M575,135 L610,135"/>
+  <path class="arrow" d="M445,335 L475,335"/>
+  <path class="arrow" d="M575,335 L610,335"/>
+  <path class="arrow" d="M445,435 L610,435"/>
+  <text class="label" x="528" y="424">creates</text>
+  <path class="arrow" d="M445,535 L610,535"/>
+  <text class="label" x="528" y="524">creates</text>
+  <path class="arrow" d="M445,635 L475,635"/>
+  <path class="arrow" d="M575,635 L610,635"/>
+
+  <path class="arrow" d="M445,235 L475,235"/>
+  <path class="arrow" d="M575,235 L610,235"/>
+
+  <path class="arrow" d="M735,226 L790,224"/>
+  <text class="label" x="762" y="212">mounts</text>
+  <path class="arrow" d="M735,246 L792,288"/>
+  <path class="arrow" d="M735,435 L790,435"/>
+  <text class="label" x="762" y="424">uses</text>
+  <path class="arrow" d="M735,535 L790,535"/>
+  <text class="label" x="762" y="524">uses</text>
+  <path class="arrow" d="M735,635 L790,635"/>
+  <text class="label" x="762" y="624">reads</text>
+  <path class="arrow" d="M950,435 L990,435"/>
+  <path class="arrow" d="M950,535 L990,535"/>
+
+  <!-- entry from the browser -->
+  <polygon class="box k8s" points="34,100 101,100 115,135 101,170 34,170 20,135"/>
+  <text class="name" x="67.5" y="131.5">30081</text>
+  <text class="tech" x="67.5" y="149.5">NodePort</text>
+
+  <polygon class="box k8s" points="34,200 101,200 115,235 101,270 34,270 20,235"/>
+  <text class="name" x="67.5" y="231.5">30080</text>
+  <text class="tech" x="67.5" y="249.5">NodePort</text>
+
+
+  <!-- Services: how traffic finds the pods -->
+  <polygon class="box k8s" points="154,100 261,100 275,135 261,170 154,170 140,135"/>
+  <text class="name" x="207.5" y="123">ui</text>
+  <text class="tech" x="207.5" y="141">Service</text>
+  <text class="tech" x="207.5" y="158">NodePort</text>
+
+  <polygon class="box k8s" points="154,200 261,200 275,235 261,270 154,270 140,235"/>
+  <text class="name" x="207.5" y="223">api</text>
+  <text class="tech" x="207.5" y="241">Service</text>
+  <text class="tech" x="207.5" y="258">NodePort, balances</text>
+
+  <polygon class="box k8s" points="154,300 261,300 275,335 261,370 154,370 140,335"/>
+  <text class="name" x="207.5" y="323">redis</text>
+  <text class="tech" x="207.5" y="341">Service</text>
+  <text class="tech" x="207.5" y="358">ClusterIP</text>
+
+  <polygon class="box k8s" points="154,400 261,400 275,435 261,470 154,470 140,435"/>
+  <text class="name" x="207.5" y="423">postgres-a</text>
+  <text class="tech" x="207.5" y="441">Service</text>
+  <text class="tech" x="207.5" y="458">headless</text>
+
+  <polygon class="box k8s" points="154,500 261,500 275,535 261,570 154,570 140,535"/>
+  <text class="name" x="207.5" y="523">postgres-b</text>
+  <text class="tech" x="207.5" y="541">Service</text>
+  <text class="tech" x="207.5" y="558">headless</text>
+
+
+  <!-- Deployments and StatefulSets: who keeps the pods alive -->
+  <polygon class="box k8s" points="319,100 431,100 445,135 431,170 319,170 305,135"/>
+  <text class="name" x="375" y="123">ui</text>
+  <text class="tech" x="375" y="141">Deployment</text>
+  <text class="tech" x="375" y="158">replicas = 1</text>
+
+  <polygon class="box k8s" points="319,200 431,200 445,235 431,270 319,270 305,235"/>
+  <text class="name" x="375" y="223">api</text>
+  <text class="tech" x="375" y="241">Deployment</text>
+  <text class="tech" x="375" y="258">replicas = 3</text>
+
+  <polygon class="box k8s" points="319,300 431,300 445,335 431,370 319,370 305,335"/>
+  <text class="name" x="375" y="323">redis</text>
+  <text class="tech" x="375" y="341">Deployment</text>
+  <text class="tech" x="375" y="358">replicas = 1</text>
+
+  <polygon class="box k8s" points="319,400 431,400 445,435 431,470 319,470 305,435"/>
+  <text class="name" x="375" y="423">postgres-a</text>
+  <text class="tech" x="375" y="441">StatefulSet</text>
+  <text class="tech" x="375" y="458">own volume</text>
+
+  <polygon class="box k8s" points="319,500 431,500 445,535 431,570 319,570 305,535"/>
+  <text class="name" x="375" y="523">postgres-b</text>
+  <text class="tech" x="375" y="541">StatefulSet</text>
+  <text class="tech" x="375" y="558">own volume</text>
+
+  <polygon class="box k8s" points="319,600 431,600 445,635 431,670 319,670 305,635"/>
+  <text class="name" x="375" y="623">prometheus</text>
+  <text class="tech" x="375" y="641">Deployment</text>
+  <text class="tech" x="375" y="658">replicas = 1</text>
+
+
+  <!-- every Deployment has a ReplicaSet that keeps its pods alive; the StatefulSets have none -->
+  <polygon class="box k8s" points="489,100 561,100 575,135 561,170 489,170 475,135"/>
+  <text class="name" x="525" y="123">ui</text>
+  <text class="tech" x="525" y="141">ReplicaSet</text>
+  <text class="tech" x="525" y="158">keeps 1 pod</text>
+
+  <polygon class="box k8s" points="489,300 561,300 575,335 561,370 489,370 475,335"/>
+  <text class="name" x="525" y="323">redis</text>
+  <text class="tech" x="525" y="341">ReplicaSet</text>
+  <text class="tech" x="525" y="358">keeps 1 pod</text>
+
+  <polygon class="box k8s" points="489,600 561,600 575,635 561,670 489,670 475,635"/>
+  <text class="name" x="525" y="623" style="font-size:14px">prometheus</text>
+  <text class="tech" x="525" y="641">ReplicaSet</text>
+  <text class="tech" x="525" y="658">keeps 1 pod</text>
+
+  <polygon class="box k8s" points="489,200 561,200 575,235 561,270 489,270 475,235"/>
+  <text class="name" x="525" y="223">api</text>
+  <text class="tech" x="525" y="241">ReplicaSet</text>
+  <text class="tech" x="525" y="258">keeps 3 pods</text>
+
+
+  <!-- pods are capsules; three stacked = three pods of the same API -->
+  <rect class="box container" x="610" y="100" width="125" height="70" rx="22"/>
+  <text class="name" x="672.5" y="123">ui</text>
+  <text class="tech" x="672.5" y="141">nginx</text>
+  <text class="tech" x="672.5" y="158">probe /</text>
+
+  <rect class="box container" x="630" y="220" width="125" height="70" rx="22" opacity="0.45"/>
+  <rect class="box container" x="620" y="210" width="125" height="70" rx="22" opacity="0.7"/>
+  <rect class="box container" x="610" y="200" width="125" height="70" rx="22"/>
+  <text class="name" x="672.5" y="223">api</text>
+  <text class="tech" x="672.5" y="241">ASP.NET Core</text>
+  <text class="tech" x="672.5" y="258">probe /health</text>
+
+  <rect class="box cache" x="610" y="300" width="125" height="70" rx="22"/>
+  <text class="name" x="672.5" y="331.5">redis</text>
+  <text class="tech" x="672.5" y="349.5">Redis</text>
+
+  <rect class="box db" x="610" y="400" width="125" height="70" rx="22"/>
+  <text class="name" x="672.5" y="431.5">postgres-a-0</text>
+  <text class="tech" x="672.5" y="449.5">PostgreSQL</text>
+
+  <rect class="box db" x="610" y="500" width="125" height="70" rx="22"/>
+  <text class="name" x="672.5" y="531.5">postgres-b-0</text>
+  <text class="tech" x="672.5" y="549.5">PostgreSQL</text>
+
+  <rect class="box container" x="610" y="600" width="125" height="70" rx="22"/>
+  <text class="name" x="672.5" y="631.5">prometheus</text>
+  <text class="tech" x="672.5" y="649.5">Prometheus</text>
+
+
+  <!-- config the pods mount as files, and the volumes the databases use -->
+  <polygon class="box k8s" points="804,196 936,196 950,224 936,252 804,252 790,224"/>
+  <text class="name" x="870" y="220.5">section-routing</text>
+  <text class="tech" x="870" y="238.5">ConfigMap</text>
+
+  <polygon class="box k8s" points="804,262 936,262 950,290 936,318 804,318 790,290"/>
+  <text class="name" x="870" y="286.5">db-credentials</text>
+  <text class="tech" x="870" y="304.5">Secret</text>
+
+  <path class="box k8s" d="M790,409 A80,9 0 0 1 950,409 V461 A80,9 0 0 1 790,461 Z"/>
+  <ellipse class="rim" cx="870" cy="409" rx="80" ry="9"/>
+  <text class="name" x="870" y="436">PVC: sections 1-2</text>
+  <text class="tech" x="870" y="454">claims storage</text>
+
+  <path class="box k8s" d="M790,509 A80,9 0 0 1 950,509 V561 A80,9 0 0 1 790,561 Z"/>
+  <ellipse class="rim" cx="870" cy="509" rx="80" ry="9"/>
+  <text class="name" x="870" y="536">PVC: sections 3-4</text>
+  <text class="tech" x="870" y="554">claims storage</text>
+
+  <polygon class="box k8s" points="804,600 936,600 950,635 936,670 804,670 790,635"/>
+  <text class="name" x="870" y="631.5">prometheus-config</text>
+  <text class="tech" x="870" y="649.5">ConfigMap</text>
+
+  <path class="box k8s" d="M990,409 A45,9 0 0 1 1080,409 V461 A45,9 0 0 1 990,461 Z"/>
+  <ellipse class="rim" cx="1035" cy="409" rx="45" ry="9"/>
+  <text class="name" x="1035" y="436">PV A</text>
+  <text class="tech" x="1035" y="454">standard</text>
+
+  <path class="box k8s" d="M990,509 A45,9 0 0 1 1080,509 V561 A45,9 0 0 1 990,561 Z"/>
+  <ellipse class="rim" cx="1035" cy="509" rx="45" ry="9"/>
+  <text class="name" x="1035" y="536">PV B</text>
+  <text class="tech" x="1035" y="554">standard</text>
+
+</svg></div><ul class="legend legend-inline" aria-label="Symboler i denne tegning">
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="container" x="2" y="4" width="30" height="16" rx="8"/></svg>Pod</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="cache" x="2" y="3" width="30" height="18" rx="3"/><path class="icon" d="M19,5 L13,13 h4 l-2,6 l7,-9 h-4 z"/></svg>Cache</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><path class="db" d="M6,6 A11,4 0 0 1 28,6 V19 A11,4 0 0 1 6,19 Z"/><ellipse class="rim" cx="17" cy="6" rx="11" ry="4"/></svg>Database, volume</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><polygon class="k8s" points="9,3 25,3 32,12 25,21 9,21 2,12"/></svg>Kubernetes-objekt</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="boundary" x="3" y="3" width="28" height="18" rx="3"/></svg>Grænse</li>
+</ul></section>
+  <section id="internals"><h2>Bag kulisserne</h2><div class="scroll" tabindex="0" role="region" aria-label="Kubernetes internals diagram, kan rulles sidelæns på små skærme"><svg viewBox="0 0 1100 632" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="internals-title internals-desc">
+  <title id="internals-title">Kubernetes internals for the API</title>
+  <desc id="internals-desc">The control plane holds the kube-apiserver, which stores objects in etcd. The kube-scheduler and the controller-manager talk to the apiserver. On the node, the kubelet and kube-proxy report to the apiserver. The Deployment creates a ReplicaSet, which creates the three API pods. The kubelet starts and probes the pods. The kube-proxy makes the Service work, and the Service balances over the pods. A NodePort is the entry from the browser.</desc>
+
+  <rect class="boundary" x="20" y="20" width="1060" height="230" rx="10"/>
+  <text class="boundary-name" x="36" y="42">Control plane: decides what runs where. It does not run our code.</text>
+
+  <rect class="boundary" x="20" y="320" width="1060" height="292" rx="10"/>
+  <text class="boundary-name" x="36" y="344">Node: minikube. The one machine that runs the pods.</text>
+
+  <!-- arrows first, so shapes sit on top; each label sits at the middle of its arrow -->
+  <path class="arrow" d="M240,95 L400,125"/>
+  <text class="label" x="320" y="108">assigns pods</text>
+
+  <path class="arrow" d="M240,185 L400,155"/>
+  <text class="label" x="320" y="172">creates pods</text>
+
+  <path class="arrow" d="M600,140 L760,140"/>
+  <text class="label" x="680" y="127">stores objects</text>
+
+  <path class="arrow" d="M430,385 L470,182"/>
+  <text class="label" x="450" y="283">reports status, gets pods</text>
+
+  <path class="arrow" d="M740,385 L560,182"/>
+  <text class="label" x="660" y="283">watches Services, pods</text>
+
+  <path class="arrow" d="M140,445 L140,495"/>
+  <text class="label" x="152" y="470" style="text-anchor:start">creates</text>
+
+  <path class="arrow" d="M240,525 L330,525"/>
+  <text class="label" x="285" y="512">creates</text>
+
+  <path class="arrow" d="M430,455 L430,495"/>
+  <text class="label" x="442" y="475" style="text-anchor:start">starts, probes /health</text>
+
+  <path class="arrow" d="M740,455 L740,495"/>
+  <text class="label" x="752" y="475" style="text-anchor:start">makes the Service work</text>
+
+  <path class="arrow" d="M640,545 L553,545"/>
+  <text class="label" x="597" y="532">balances</text>
+
+  <path class="arrow" d="M890,535 L840,535"/>
+
+  <!-- control plane: programs, with the cluster's database as a cylinder -->
+  <rect class="box control-plane" x="40" y="60" width="200" height="70" rx="6"/>
+  <text class="name" x="140" y="91.5">kube-scheduler</text>
+  <text class="tech" x="140" y="109.5">picks a node for each pod</text>
+
+  <rect class="box control-plane" x="40" y="150" width="200" height="70" rx="6"/>
+  <text class="name" x="140" y="181.5">controller-manager</text>
+  <text class="tech" x="140" y="199.5">makes reality match</text>
+
+  <rect class="box control-plane" x="400" y="100" width="200" height="80" rx="6"/>
+  <text class="name" x="500" y="136.5">kube-apiserver</text>
+  <text class="tech" x="500" y="154.5">receives kubectl apply</text>
+
+  <path class="box control-plane" d="M760,108 A100,12 0 0 1 960,108 V172 A100,12 0 0 1 760,172 Z"/>
+  <ellipse class="rim" cx="860" cy="108" rx="100" ry="12"/>
+  <text class="name" x="860" y="142.5">etcd</text>
+  <text class="tech" x="860" y="160.5">stores all cluster state</text>
+
+
+  <!-- node -->
+  <polygon class="box k8s" points="56,385 224,385 240,415 224,445 56,445 40,415"/>
+  <text class="name" x="140" y="411.5">Deployment: api</text>
+  <text class="tech" x="140" y="429.5">replicas = 3</text>
+
+  <polygon class="box k8s" points="56,495 224,495 240,525 224,555 56,555 40,525"/>
+  <text class="name" x="140" y="521.5">ReplicaSet: api</text>
+  <text class="tech" x="140" y="539.5">keeps 3 pods alive</text>
+
+  <rect class="box agent" x="330" y="385" width="200" height="70" rx="6"/>
+  <text class="name" x="430" y="416.5">kubelet</text>
+  <text class="tech" x="430" y="434.5">starts containers, probes</text>
+
+  <rect class="box agent" x="640" y="385" width="200" height="70" rx="6"/>
+  <text class="name" x="740" y="416.5">kube-proxy</text>
+  <text class="tech" x="740" y="434.5">makes Services work here</text>
+
+  <!-- three stacked capsules = three pods of the same API -->
+  <rect class="box container" x="350" y="515" width="200" height="80" rx="22" opacity="0.45"/>
+  <rect class="box container" x="340" y="505" width="200" height="80" rx="22" opacity="0.7"/>
+  <rect class="box container" x="330" y="495" width="200" height="80" rx="22"/>
+  <text class="name" x="430" y="531.5">Pods: api</text>
+  <text class="tech" x="430" y="549.5">replicas = 3</text>
+
+  <polygon class="box k8s" points="656,495 824,495 840,535 824,575 656,575 640,535"/>
+  <text class="name" x="740" y="531.5">Service: api</text>
+  <text class="tech" x="740" y="549.5">selects pods by label</text>
+
+  <polygon class="box k8s" points="906,495 1044,495 1060,535 1044,575 906,575 890,535"/>
+  <text class="name" x="975" y="531.5">NodePort 30080</text>
+  <text class="tech" x="975" y="549.5">entry from the browser</text>
+
+</svg></div><ul class="legend legend-inline" aria-label="Symboler i denne tegning">
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="container" x="2" y="4" width="30" height="16" rx="8"/></svg>Pod</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><polygon class="k8s" points="9,3 25,3 32,12 25,21 9,21 2,12"/></svg>Kubernetes-objekt</li>
+  <li><svg class="icon-svg" viewBox="0 0 34 24" aria-hidden="true"><rect class="boundary" x="3" y="3" width="28" height="18" rx="3"/></svg>Grænse</li>
+</ul></section>
+</main>
+</div>
+<script>
+  // runs once on load; the browser then calls it whenever a section crosses the middle of the screen
+  const links = document.querySelectorAll('aside nav a');
+  const watcher = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      for (const link of links) {
+        const here = link.getAttribute('href') === '#' + entry.target.id;
+        if (here) {
+          link.setAttribute('aria-current', 'true');
+          // on mobile the nav scrolls sideways, so bring the current link into view inside it
+          link.parentElement.scrollTo({ left: link.offsetLeft - 24, behavior: 'smooth' });
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      }
+    }
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  document.querySelectorAll('main section').forEach(section => watcher.observe(section));
+</script>
+</body>
+</html>

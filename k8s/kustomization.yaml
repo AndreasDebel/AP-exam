@@ -1,0 +1,21 @@
+# The whole system in one command, run from the repo root:
+#   kubectl apply -k k8s       (start / update)
+#   kubectl delete -k k8s      (stop and wipe: deleting the namespace also deletes the database volume)
+# kubectl reads this list and applies every file in it; the Namespace goes first automatically.
+# So every "apply -k" after a "delete -k" starts from an empty database: configmaps/schema.yaml runs
+# again and every section is back at sold = 0.
+#
+# The API, one database and the UI. Add a file here when its issue is done
+# (redis #9, prometheus #7, postgres-b #11).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-namespace.yaml
+  - secrets/db-credentials.yaml
+  - configmaps/schema.yaml
+  - services/postgres-a.yaml
+  - statefulsets/postgres-a.yaml
+  - services/api.yaml
+  - deployments/api.yaml
+  - services/ui.yaml
+  - deployments/ui.yaml

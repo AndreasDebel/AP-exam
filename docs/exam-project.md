@@ -36,6 +36,14 @@ A load generator plus metrics/logs (Prometheus, module 9). Two separate load tes
 | Reads  | Availability queries | 1 API, no cache | 3 APIs and Redis   | x-scaling, caching |
 | Writes | Buy                  | 1 database      | 2 databases        | z-scaling          |
 
+## Limitation: one node (Minikube)
+
+Everything runs on Minikube, which is a single node: all pods share one machine's CPU, memory and disk. So the demo proves the **mechanisms** (Service load balancing, replicas, StatefulSets, the section router), not their **effect** on capacity and availability. That would need a cluster with several nodes.
+
+- **X-scaling adds no capacity.** The 3 API replicas share the same CPU. More replicas can raise throughput (requests per second) only until that CPU is full. If the k6 numbers flatten out, the shared CPU is the likely cause, not the architecture.
+- **Z-scaling does not truly split the load.** `postgres-a` and `postgres-b` are separate databases with separate volumes, but they share disk and CPU. The split shows routing and data isolation, not that each database gets its own resources.
+- **No tolerance for node failure.** Kubernetes restarts a pod that dies, and Isolate Faults (kill one database, the other's sections keep selling) still works at pod level. But if the node dies, the whole system dies, databases included. One node is a single point of failure.
+
 ## Menu principles
 
 - Forced by the baseline: Scale Out Not Up, Design for at Least 2 Axes of Scale, Design to Be Monitored, Stateless Systems.
