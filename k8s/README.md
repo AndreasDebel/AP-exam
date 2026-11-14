@@ -1,4 +1,4 @@
-Start systemet på Minikube (API'et og databasen postgres-a), kørt fra repo-roden:
+Start systemet på Minikube (API'et, databasen postgres-a og UI'et), kørt fra repo-roden:
 
 ```
 minikube start
@@ -33,6 +33,18 @@ Er der pushet et nyt API-image, så hent det ind i de kørende pods:
 
 ```
 kubectl rollout restart deployment/api -n booking
+```
+
+Åbn UI'et i browseren. Også her skal terminalen blive stående åben:
+
+```
+minikube service ui -n booking
+```
+
+UI'et kalder kun sin egen adresse; nginx i ui-pod'en sender `/sections/...` videre til API'et. UI-imaget hentes fra Docker Hub (`mortenj91/eventbooking-ui:latest`, se ui/README.md). Er der pushet et nyt, så:
+
+```
+kubectl rollout restart deployment/ui -n booking
 ```
 
 Stop og slet alt, også databasen (næste `apply -k` starter med `sold = 0`):
