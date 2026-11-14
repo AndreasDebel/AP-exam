@@ -1,0 +1,49 @@
+# StatefulSet: postgres-a (-> pod postgres-a-0) with its own volume (PVC). Owns sections 1-2.
+# Its headless Service is services/postgres-a.yaml.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-a
+  namespace: booking
+spec:
+  serviceName: postgres-a # The headless Service in services/postgres-a.yaml. Gives the pod the DNS name postgres-a-0.postgres-a.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-a
+  template:
+    metadata:
+      labels:
+        app: postgres-a
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          env:
+            - name: POSTGRES_DB
+              value: booking # The "Database=booking" in secrets/db-credentials.yaml.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: postgres-password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            # Postgres runs the .sql files here once, when the data volume is empty (first start).
+            # Dropped on purpose: a migration tool. The schema is one table that never changes.
+            - name: schema
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: schema
+          configMap:
+            name: schema # configmaps/schema.yaml
+  # One PVC per pod is created from this (data-postgres-a-0). The PV is provisioned automatically.
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

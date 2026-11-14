@@ -1,0 +1,10 @@
+# Service: postgres-a (headless). Gives statefulsets/postgres-a.yaml's pod the DNS name postgres-a-0.postgres-a.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-a
+  namespace: booking
+spec:
+  clusterIP: None # Headless: DNS points straight at the pod.
+  selector:
+    app: postgres-a
