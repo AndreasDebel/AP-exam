@@ -1,0 +1,12 @@
+# Service: redis (ClusterIP, the default: reachable inside the cluster only).
+# The API pods reach the pod from deployments/redis.yaml as redis:6379 through cluster DNS.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: booking
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
