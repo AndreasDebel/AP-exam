@@ -1,0 +1,23 @@
+# Deployment: redis (-> ReplicaSet -> 1 pod). Its Service is services/redis.yaml.
+# The availability cache shared by all API pods (issue #9). api/Program.cs reads and writes it.
+# Dropped on purpose: a volume, a password and replicas. The cache is rebuilt from Postgres, and the cluster isn't exposed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: booking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis # services/redis.yaml finds the pod by this label.
+    spec:
+      containers:
+        - name: redis
+          image: redis:7
+          ports:
+            - containerPort: 6379

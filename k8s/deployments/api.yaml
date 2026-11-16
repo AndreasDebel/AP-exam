@@ -24,6 +24,12 @@ spec:
           imagePullPolicy: Always # Pull on every pod start, so a re-published :latest is picked up.
           # Dropped on purpose: a readinessProbe. The API has no /health yet. Add back with X-scaling (#10).
           env:
+            # Overrides "Redis" in api/appsettings.json (localhost). services/redis.yaml gives the name redis.
+            - name: Redis
+              value: redis:6379
+            # The cache switch. Issue #10 flips it to "false" to measure the API without Redis.
+            - name: CacheEnabled
+              value: "true" # Quoted: env values must be strings.
             # Overrides "Sections" in api/appsettings.json (localhost). The API's router reads these.
             # All four point at database a; splitting them across a and b is z-scaling (#11).
             - name: Sections__1

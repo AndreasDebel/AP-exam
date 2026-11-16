@@ -1,3 +1,9 @@
+Start en lokal Redis (cachen, issue #9) ved siden af den lokale database:
+
+```
+docker run -d --name booking-redis -p 6379:6379 redis:7
+```
+
 Opdatér den lokale database (hvis schema.sql ændres). OBS: sletter alle data i tabellen:
 
 ```

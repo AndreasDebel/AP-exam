@@ -1,6 +1,7 @@
 using Npgsql;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,14 +26,41 @@ app.MapPrometheusScrapingEndpoint() // serverer /metrics
 // Router: section id -> connection string
 var router = builder.Configuration.GetSection("Sections").Get<Dictionary<string, string>>()!;
 
+// Cache switch: issue #10 flips it to compare cache off/on.
+var cacheEnabled = builder.Configuration.GetValue<bool>("CacheEnabled");
+
+// One Redis connection, opened once at startup and shared by every request.
+// Unlike the Postgres connections below (one per request), this is how StackExchange.Redis is meant to be used.
+// Dropped on purpose: connecting only when the cache is on. So the API needs Redis to start, even with the cache off.
+var redis = ConnectionMultiplexer.Connect(builder.Configuration["Redis"]!).GetDatabase();
+
 app.MapGet("/sections/{id:int}", async (int id) =>
 {
+    var key = $"availability:{id}";
+
+    if (cacheEnabled)
+    {
+        // LOOK HERE! Asks the shared Redis pod (k8s/deployments/redis.yaml, reached through k8s/services/redis.yaml).
+        var cached = await redis.StringGetAsync(key);
+        if (cached.HasValue)
+        {
+            return Results.Ok(new { id, free = (int)cached });
+        }
+    }
+
     await using var conn = new NpgsqlConnection(router[id.ToString()]);
     await conn.OpenAsync();
 
     await using var cmd = new NpgsqlCommand("SELECT capacity - sold FROM section WHERE id = @id", conn);
     cmd.Parameters.AddWithValue("id", id);
     var free = (int)(await cmd.ExecuteScalarAsync())!;
+
+    if (cacheEnabled)
+    {
+        // The 2-second expiry is the only invalidation: buy does not clear this key.
+        // That is safe: a stale number can only make buy answer 409, because buy re-checks Postgres under a row lock.
+        await redis.StringSetAsync(key, free, TimeSpan.FromSeconds(2));
+    }
 
     return Results.Ok(new { id, free });
 });
@@ -43,6 +71,7 @@ app.MapPost("/sections/{id:int}/buy", async (int id, BuyRequest req) =>
     await conn.OpenAsync();
     await using var tx = await conn.BeginTransactionAsync();
 
+    // Buy deliberately reads Postgres, never Redis: the row lock (FOR UPDATE) is what prevents overselling.
     await using var select = new NpgsqlCommand("SELECT capacity - sold FROM section WHERE id = @id FOR UPDATE", conn, tx);
     select.Parameters.AddWithValue("id", id);
     var free = (int)(await select.ExecuteScalarAsync())!;
