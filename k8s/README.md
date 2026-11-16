@@ -47,8 +47,14 @@ UI'et kalder kun sin egen adresse; nginx i ui-pod'en sender `/sections/...` vide
 kubectl rollout restart deployment/ui -n booking
 ```
 
-Stop og slet alt, også databasen (næste `apply -k` starter med `sold = 0`):
+Stop alt:
 
 ```
 kubectl delete -k k8s
+```
+
+Det sletter **ikke** databasens data. Minikube gemmer hver volume i en mappe opkaldt efter PVC'en (`/tmp/hostpath-provisioner/booking/...`) og fjerner den aldrig, så næste `apply -k` får de gamle data igen, og schemaet køres ikke. For at starte forfra med `sold = 0` skal mappen slettes mellem `delete -k` og `apply -k`:
+
+```
+minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking
 ```

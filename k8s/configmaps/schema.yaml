@@ -1,4 +1,4 @@
-# ConfigMap: schema. Mounted into postgres-a at /docker-entrypoint-initdb.d (statefulsets/postgres-a.yaml).
+# ConfigMap: schema. Mounted into postgres-a and postgres-b at /docker-entrypoint-initdb.d (statefulsets/).
 # Copy of api/Schema.sql — keep them in sync. A copy, so all of k8s/ installs with one kubectl apply.
 apiVersion: v1
 kind: ConfigMap
@@ -14,7 +14,7 @@ data:
     );
 
     INSERT INTO section (id, capacity) VALUES
-        (1, 1000000),
+        (1, 100),
         (2, 1000000),
         (3, 1000000),
         (4, 1000000);

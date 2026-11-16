@@ -1,12 +1,13 @@
 # The whole system in one command, run from the repo root:
 #   kubectl apply -k k8s       (start / update)
-#   kubectl delete -k k8s      (stop and wipe: deleting the namespace also deletes the database volume)
+#   kubectl delete -k k8s      (stop: deletes the pods and the PVCs, but NOT the database files)
 # kubectl reads this list and applies every file in it; the Namespace goes first automatically.
-# So every "apply -k" after a "delete -k" starts from an empty database: configmaps/schema.yaml runs
-# again and every section is back at sold = 0.
+# Minikube keeps each volume in a folder named after the PVC (/tmp/hostpath-provisioner/booking/...)
+# and never removes it. So the next "apply -k" gets the old data back, and configmaps/schema.yaml
+# does not run again. To start from an empty database (sold = 0), wipe the folder in between:
+#   minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking
 #
-# The API, one database, Redis and the UI. Add a file here when its issue is done
-# (prometheus #7, postgres-b #11).
+# The API, two databases (z-scaling, #11), Redis, Prometheus and the UI.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -15,14 +16,15 @@ resources:
   - configmaps/schema.yaml
   - deployments/api.yaml
   - deployments/prometheus.yaml
-  - services/redis.yaml
   - deployments/redis.yaml
-  - services/ui.yaml
   - deployments/ui.yaml
   - rbac/prometheus.yaml
   - secrets/db-credentials.yaml
   - services/api.yaml
   - services/postgres-a.yaml
+  - services/postgres-b.yaml
   - services/prometheus.yaml
+  - services/redis.yaml
   - services/ui.yaml
   - statefulsets/postgres-a.yaml
+  - statefulsets/postgres-b.yaml

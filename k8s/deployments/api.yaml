@@ -31,7 +31,9 @@ spec:
             - name: CacheEnabled
               value: "true" # Quoted: env values must be strings.
             # Overrides "Sections" in api/appsettings.json (localhost). The API's router reads these.
-            # All four point at database a; splitting them across a and b is z-scaling (#11).
+            # Z-scaling (#11): sections 1-2 live in database a, sections 3-4 in database b.
+            # Moving a section = changing its "key" below and running "kubectl apply -k k8s" (the API pods restart).
+            # The "before" measurement has all four on key a.
             - name: Sections__1
               valueFrom:
                 secretKeyRef:
@@ -46,9 +48,9 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: db-credentials
-                  key: a
+                  key: b
             - name: Sections__4
               valueFrom:
                 secretKeyRef:
                   name: db-credentials
-                  key: a
+                  key: b
