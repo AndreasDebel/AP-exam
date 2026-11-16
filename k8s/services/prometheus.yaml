@@ -1,0 +1,11 @@
+# Service: prometheus. Reach it with: kubectl port-forward -n booking svc/prometheus 9090:9090
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: booking
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090

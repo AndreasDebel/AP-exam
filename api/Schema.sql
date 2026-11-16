@@ -5,7 +5,7 @@ CREATE TABLE section (
 );
 
 INSERT INTO section (id, capacity) VALUES
-    (1, 1000000),
+    (1, 100),
     (2, 1000000),
     (3, 1000000),
     (4, 1000000);

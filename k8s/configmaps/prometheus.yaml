@@ -1,0 +1,28 @@
+# Prometheus config: finds the api pods via the Kubernetes API (needs rbac/prometheus.yaml) and scrapes each pod.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: booking
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s # Short so the demo updates fast.
+    scrape_configs:
+      - job_name: api
+        kubernetes_sd_configs:
+          - role: pod # gør, at Prometheus finder hver pod og scraper <pod-IP>:8080/metrics.
+            namespaces:
+              names: [booking] # The Role only allows "booking".
+        relabel_configs:
+          # Keep only pods with label app=api.
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: api
+            action: keep
+          # Keep only the port named "http" (from deployments/api.yaml).
+          - source_labels: [__meta_kubernetes_pod_container_port_name]
+            regex: http
+            action: keep
+          # Put the pod name in a "pod" label.
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod

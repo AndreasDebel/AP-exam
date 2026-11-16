@@ -1,0 +1,33 @@
+# Deployment: prometheus (1 pod). Scrapes each api pod (config in configmaps/prometheus.yaml).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: booking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus # From rbac/prometheus.yaml, so it may list pods.
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+          ports:
+            - name: web
+              containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+      # Dropped on purpose: persistent storage. Data is lost when the pod restarts (fine for the demo).

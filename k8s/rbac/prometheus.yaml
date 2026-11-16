@@ -1,0 +1,30 @@
+# RBAC for Prometheus: lets it list pods in "booking" so it can scrape each pod (kubernetes_sd_configs).
+apiVersion: v1
+kind: ServiceAccount # den identitet, Prometheus-pod'en kører med.
+metadata:
+  name: prometheus
+  namespace: booking
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role # giver lov til at læse pods, kun i booking. Role frem for en ClusterRole, så Prometheus kun kan se vores eget namespace og ikke hele clusteret.
+metadata:
+  name: prometheus
+  namespace: booking
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding # kobler ServiceAccount og Role sammen.
+metadata:
+  name: prometheus
+  namespace: booking
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: booking
+roleRef:
+  kind: Role
+  name: prometheus
+  apiGroup: rbac.authorization.k8s.io
