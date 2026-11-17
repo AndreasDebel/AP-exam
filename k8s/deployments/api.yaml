@@ -22,7 +22,14 @@ spec:
             - name: http
               containerPort: 8080 # Port 8080 is standard for .NET-container-images, but check targetPort in services/api.yaml – they have to match. If targetPort isn't set explicitly it's 8080.
           imagePullPolicy: Always # Pull on every pod start, so a re-published :latest is picked up.
-          # Dropped on purpose: a readinessProbe. The API has no /health yet. Add back with X-scaling (#10).
+          # Kubernetes calls GET /health on each pod (the endpoint is in api/Program.cs).
+          # Until it answers 200, the Service sends the pod no requests. That matters when scaling up:
+          # a new copy only joins the load balancing once it is actually ready.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
           env:
             # Overrides "Redis" in api/appsettings.json (localhost). services/redis.yaml gives the name redis.
             - name: Redis
