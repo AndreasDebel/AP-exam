@@ -1,0 +1,15 @@
+# Grafana loads this data source definition at startup.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource
+  namespace: booking
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        # LOOK HERE! Grafana queries the Prometheus Service in services/prometheus.yaml.
+        url: http://prometheus:9090
+        isDefault: true

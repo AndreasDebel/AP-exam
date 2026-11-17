@@ -7,20 +7,23 @@
 # does not run again. To start from an empty database (sold = 0), wipe the folder in between:
 #   minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking
 #
-# The API, two databases (z-scaling, #11), Redis, Prometheus and the UI.
+# The API, two databases (z-scaling, #11), Redis, Prometheus, Grafana and the UI.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - 00-namespace.yaml
+  - configmaps/grafana.yaml
   - configmaps/prometheus.yaml
   - configmaps/schema.yaml
   - deployments/api.yaml
+  - deployments/grafana.yaml
   - deployments/prometheus.yaml
   - deployments/redis.yaml
   - deployments/ui.yaml
   - rbac/prometheus.yaml
   - secrets/db-credentials.yaml
   - services/api.yaml
+  - services/grafana.yaml
   - services/postgres-a.yaml
   - services/postgres-b.yaml
   - services/prometheus.yaml
