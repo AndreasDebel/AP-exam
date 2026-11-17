@@ -1,0 +1,106 @@
+# Prometheus: scrapes each api pod. Four parts, top to bottom:
+#   ConfigMap (what to scrape) -> RBAC (permission to list pods) -> Deployment (1 pod) -> Service.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: booking
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s # Short so the demo updates fast.
+    scrape_configs:
+      - job_name: api
+        kubernetes_sd_configs:
+          - role: pod # gør, at Prometheus finder hver pod og scraper <pod-IP>:8080/metrics.
+            namespaces:
+              names: [booking] # The Role only allows "booking".
+        relabel_configs:
+          # Keep only pods with label app=api.
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: api
+            action: keep
+          # Keep only the port named "http" (from api.yaml).
+          - source_labels: [__meta_kubernetes_pod_container_port_name]
+            regex: http
+            action: keep
+          # Put the pod name in a "pod" label.
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+---
+# RBAC: lets Prometheus list pods in "booking" so it can scrape each pod (kubernetes_sd_configs above).
+apiVersion: v1
+kind: ServiceAccount # den identitet, Prometheus-pod'en kører med.
+metadata:
+  name: prometheus
+  namespace: booking
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role # giver lov til at læse pods, kun i booking. Role frem for en ClusterRole, så Prometheus kun kan se vores eget namespace og ikke hele clusteret.
+metadata:
+  name: prometheus
+  namespace: booking
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding # kobler ServiceAccount og Role sammen.
+metadata:
+  name: prometheus
+  namespace: booking
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: booking
+roleRef:
+  kind: Role
+  name: prometheus
+  apiGroup: rbac.authorization.k8s.io
+---
+# Deployment: prometheus (1 pod), using the config and the ServiceAccount above.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: booking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus # The ServiceAccount above, so it may list pods.
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v3
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+          ports:
+            - name: web
+              containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config # The ConfigMap at the top of this file.
+      # Dropped on purpose: persistent storage. Data is lost when the pod restarts (fine for the demo).
+---
+# Service: prometheus. Reach it with: kubectl port-forward -n booking svc/prometheus 9090:9090
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: booking
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090

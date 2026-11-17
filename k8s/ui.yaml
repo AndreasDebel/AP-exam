@@ -1,4 +1,4 @@
-# Deployment: ui (-> pod running nginx with the Blazor files). Its Service is services/ui.yaml.
+# The UI: a Deployment (-> pod running nginx with the Blazor files) and its Service (further down).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,3 +23,17 @@ spec:
             httpGet:
               path: /
               port: 80
+---
+# Service: ui (NodePort 30081). Points at the pod from the Deployment above.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  namespace: booking
+spec:
+  type: NodePort
+  selector:
+    app: ui
+  ports:
+    - port: 80
+      nodePort: 30081
