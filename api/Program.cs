@@ -78,10 +78,25 @@ app.MapPost("/sections/{id:int}/buy", async (int id, BuyRequest req) =>
     await using var tx = await conn.BeginTransactionAsync();
 
     // Buy deliberately reads Postgres, never Redis: the row lock (FOR UPDATE) is what prevents overselling.
-    await using var select = new NpgsqlCommand("SELECT capacity - sold FROM section WHERE id = @id FOR UPDATE", conn, tx);
+    // The kill switch (Design to Be Disabled, #12) is read under the same lock, so a section that is switched off refuses the very next buy.
+    await using var select = new NpgsqlCommand("SELECT capacity - sold, disabled FROM section WHERE id = @id FOR UPDATE", conn, tx);
     select.Parameters.AddWithValue("id", id);
+    
     var free = (int)(await select.ExecuteScalarAsync())!;
+    bool disabled;
+    await using (var reader = await select.ExecuteReaderAsync())
+    {
+        await reader.ReadAsync();
+        free = reader.GetInt32(0);
+        disabled = reader.GetBoolean(1);
+    } // The reader must be closed before the UPDATE below can use the same connection.
 
+    if (disabled)
+    {
+        await tx.RollbackAsync();
+        return Results.Json("section disabled", statusCode: 503);
+    }
+    
     if (free < req.Count)
     {
         await tx.RollbackAsync();
