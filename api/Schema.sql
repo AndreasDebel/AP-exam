@@ -1,7 +1,8 @@
 CREATE TABLE section (
      id       int PRIMARY KEY,
      capacity int NOT NULL,
-     sold     int NOT NULL DEFAULT 0
+     sold     int NOT NULL DEFAULT 0,
+     disabled boolean NOT NULL DEFAULT false
 );
 
 INSERT INTO section (id, capacity) VALUES
