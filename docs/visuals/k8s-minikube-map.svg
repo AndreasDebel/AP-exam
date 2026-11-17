@@ -41,19 +41,19 @@
   <rect class="box data" x="60" y="200" width="370" height="52"/>
   <circle cx="80" cy="220" r="11" fill="#333"/><text class="num" x="80" y="225" text-anchor="middle">3</text>
   <text class="title" x="100" y="225">Secret db-credentials</text>
-  <text class="file" x="100" y="243">k8s/secrets/db-credentials.yaml:8</text>
+  <text class="file" x="100" y="243">k8s/db-credentials.yaml:8</text>
 
   <!-- 4 configmap -->
   <rect class="box data" x="470" y="200" width="370" height="52"/>
   <circle cx="490" cy="220" r="11" fill="#333"/><text class="num" x="490" y="225" text-anchor="middle">4</text>
   <text class="title" x="510" y="225">ConfigMap schema</text>
-  <text class="file" x="510" y="243">k8s/configmaps/schema.yaml:9</text>
+  <text class="file" x="510" y="243">k8s/schema.yaml:9</text>
 
   <!-- 5 statefulset -->
   <rect class="box db" x="200" y="310" width="500" height="52"/>
   <circle cx="220" cy="330" r="11" fill="#333"/><text class="num" x="220" y="335" text-anchor="middle">5</text>
   <text class="title" x="240" y="335">StatefulSet postgres-a</text>
-  <text class="file" x="240" y="353">k8s/statefulsets/postgres-a.yaml:4</text>
+  <text class="file" x="240" y="353">k8s/postgres-a.yaml:4</text>
 
   <path class="edge" d="M300,252 L300,308"/>
   <text class="label" x="310" y="285">password (env)</text>
@@ -64,7 +64,7 @@
   <rect class="box svc" x="200" y="420" width="500" height="52"/>
   <circle cx="220" cy="440" r="11" fill="#333"/><text class="num" x="220" y="445" text-anchor="middle">6</text>
   <text class="title" x="240" y="445">Service postgres-a (headless)</text>
-  <text class="file" x="240" y="463">k8s/services/postgres-a.yaml:8</text>
+  <text class="file" x="240" y="463">k8s/postgres-a.yaml:58</text>
 
   <path class="edge" d="M450,420 L450,364"/>
   <text class="label" x="460" y="396">selector app: postgres-a</text>
@@ -73,7 +73,7 @@
   <rect class="box api" x="200" y="540" width="500" height="52"/>
   <circle cx="220" cy="560" r="11" fill="#333"/><text class="num" x="220" y="565" text-anchor="middle">7</text>
   <text class="title" x="240" y="565">Deployment api</text>
-  <text class="file" x="240" y="583">k8s/deployments/api.yaml:8</text>
+  <text class="file" x="240" y="583">k8s/api.yaml:8</text>
 
   <path class="edge" d="M90,252 L90,566 L198,566"/>
   <text class="label" x="98" y="480">conn. string "a"</text>
@@ -86,7 +86,7 @@
   <rect class="box svc" x="200" y="660" width="500" height="52"/>
   <circle cx="220" cy="680" r="11" fill="#333"/><text class="num" x="220" y="685" text-anchor="middle">8</text>
   <text class="title" x="240" y="685">Service api (NodePort)</text>
-  <text class="file" x="240" y="703">k8s/services/api.yaml:8</text>
+  <text class="file" x="240" y="703">k8s/api.yaml:72</text>
 
   <path class="edge" d="M450,660 L450,594"/>
   <text class="label" x="460" y="632">selector app: api</text>

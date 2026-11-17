@@ -1,14 +1,14 @@
-# StatefulSet: postgres-b (-> pod postgres-b-0) with its own volume (PVC). Owns sections 3-4.
-# Same as postgres-a.yaml with a -> b. Its headless Service is services/postgres-b.yaml.
+# Database b: a StatefulSet (-> pod postgres-b-0) with its own volume (PVC), and its headless Service (further down).
+# Owns sections 3-4. Same as postgres-a.yaml with a -> b.
 # It gets the same schema as postgres-a, so it also has all 4 section rows. Which database is live
-# for a section is decided by the router (Sections__N in deployments/api.yaml), not by the data.
+# for a section is decided by the router (Sections__N in api.yaml), not by the data.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-b
   namespace: booking
 spec:
-  serviceName: postgres-b # The headless Service in services/postgres-b.yaml. Gives the pod the DNS name postgres-b-0.postgres-b.
+  serviceName: postgres-b # The headless Service below. Gives the pod the DNS name postgres-b-0.postgres-b.
   replicas: 1
   selector:
     matchLabels:
@@ -23,7 +23,7 @@ spec:
           image: postgres:16
           env:
             - name: POSTGRES_DB
-              value: booking # The "Database=booking" in secrets/db-credentials.yaml.
+              value: booking # The "Database=booking" in db-credentials.yaml.
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -38,7 +38,7 @@ spec:
       volumes:
         - name: schema
           configMap:
-            name: schema # configmaps/schema.yaml, the same one postgres-a uses
+            name: schema # schema.yaml, the same one postgres-a uses
   # One PVC per pod is created from this (data-postgres-b-0). The PV is provisioned automatically.
   volumeClaimTemplates:
     - metadata:
@@ -48,3 +48,14 @@ spec:
         resources:
           requests:
             storage: 1Gi
+---
+# Service: postgres-b (headless). Same as in postgres-a.yaml with a -> b.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-b
+  namespace: booking
+spec:
+  clusterIP: None
+  selector:
+    app: postgres-b
