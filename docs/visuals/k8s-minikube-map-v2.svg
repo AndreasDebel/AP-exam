@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1030" viewBox="0 0 1100 1030" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <!-- Map of k8s/ after "one file per component" (PR #33): one box per file, what it provides, and what each connection does. -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+    <style>
+      .box   { fill: #fff; stroke: #333; stroke-width: 1.5; rx: 6; }
+      .data  { fill: #fff8e1; }
+      .db    { fill: #e3f2fd; }
+      .api   { fill: #e8f5e9; }
+      .cache { fill: #ffebee; }
+      .ui    { fill: #e0f7fa; }
+      .mon   { fill: #fff3e0; }
+      .title { font-size: 15px; font-weight: bold; fill: #111; }
+      .desc  { font-size: 12px; fill: #333; }
+      .edge  { stroke: #444; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+      .label { font-size: 11.5px; fill: #444; font-style: italic; }
+      .num   { font-size: 13px; font-weight: bold; fill: #fff; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="1030" fill="#fff"/>
+
+  <text x="550" y="34" text-anchor="middle" font-size="20" font-weight="bold">k8s/ on Minikube: one file per component</text>
+
+  <!-- 1 kustomization -->
+  <rect class="box" x="370" y="56" width="360" height="68"/>
+  <circle cx="390" cy="76" r="11" fill="#333"/><text class="num" x="390" y="81" text-anchor="middle">1</text>
+  <text class="title" x="410" y="81">kustomization.yaml</text>
+  <text class="desc" x="390" y="100">The table of contents: lists every file, so one</text>
+  <text class="desc" x="390" y="116">command starts or stops the whole system.</text>
+
+  <path class="edge" d="M550,124 L550,148"/>
+  <text class="label" x="560" y="141">creates everything inside the dashed line</text>
+
+  <!-- 2 namespace -->
+  <rect x="20" y="150" width="1060" height="740" rx="10" fill="#fff" stroke="#888" stroke-dasharray="8 5" stroke-width="1.5"/>
+  <circle cx="42" cy="172" r="11" fill="#333"/><text class="num" x="42" y="177" text-anchor="middle">2</text>
+  <text class="title" x="62" y="177">00-namespace.yaml</text>
+  <text class="desc" x="215" y="177">A private room called "booking" that keeps our parts together and apart from the rest of the cluster.</text>
+
+  <!-- ===== Top row: databases, with the shared config stacked between them ===== -->
+
+  <!-- 5 postgres-a -->
+  <rect class="box db" x="60" y="205" width="320" height="200"/>
+  <circle cx="80" cy="225" r="11" fill="#333"/><text class="num" x="80" y="230" text-anchor="middle">5</text>
+  <text class="title" x="100" y="230">postgres-a.yaml</text>
+  <text class="desc" x="80" y="253">Database a. Runs as one pod with a fixed name</text>
+  <text class="desc" x="80" y="270">and its own disk, so the data survives restarts.</text>
+  <text class="desc" x="80" y="287">Gets a stable address the API can find.</text>
+  <text class="desc" x="80" y="304">Holds the live data for sections 1–2.</text>
+
+  <!-- 3 db-credentials -->
+  <rect class="box data" x="450" y="205" width="200" height="95"/>
+  <circle cx="470" cy="225" r="11" fill="#333"/><text class="num" x="470" y="230" text-anchor="middle">3</text>
+  <text class="title" x="487" y="230" style="font-size:14px">db-credentials.yaml</text>
+  <text class="desc" x="465" y="252">Shared secrets: the</text>
+  <text class="desc" x="465" y="268">database password, and</text>
+  <text class="desc" x="465" y="284">where database a and b are.</text>
+
+  <!-- 4 schema -->
+  <rect class="box data" x="450" y="320" width="200" height="85"/>
+  <circle cx="470" cy="340" r="11" fill="#333"/><text class="num" x="470" y="345" text-anchor="middle">4</text>
+  <text class="title" x="490" y="345">schema.yaml</text>
+  <text class="desc" x="465" y="366">Starting tables and rows</text>
+  <text class="desc" x="465" y="382">(4 sections, 0 sold) for a</text>
+  <text class="desc" x="465" y="398">brand-new database.</text>
+
+  <!-- 6 postgres-b -->
+  <rect class="box db" x="720" y="205" width="320" height="200"/>
+  <circle cx="740" cy="225" r="11" fill="#333"/><text class="num" x="740" y="230" text-anchor="middle">6</text>
+  <text class="title" x="760" y="230">postgres-b.yaml</text>
+  <text class="desc" x="740" y="253">Database b. A twin of database a, with its own</text>
+  <text class="desc" x="740" y="270">pod and disk. Splitting the sections across</text>
+  <text class="desc" x="740" y="287">two databases is the Z-scaling.</text>
+  <text class="desc" x="740" y="304">Holds the live data for sections 3–4.</text>
+
+  <!-- secret -> both databases -->
+  <path class="edge" d="M450,255 L382,255"/>
+  <text class="label" x="416" y="246" text-anchor="middle">password</text>
+  <path class="edge" d="M650,255 L718,255"/>
+  <text class="label" x="684" y="246" text-anchor="middle">password</text>
+
+  <!-- schema -> both databases -->
+  <path class="edge" d="M450,362 L382,362"/>
+  <text class="label" x="416" y="353" text-anchor="middle">fills once,</text>
+  <text class="label" x="416" y="378" text-anchor="middle">when new</text>
+  <path class="edge" d="M650,362 L718,362"/>
+  <text class="label" x="684" y="353" text-anchor="middle">fills once,</text>
+  <text class="label" x="684" y="378" text-anchor="middle">when new</text>
+
+  <!-- secret -> api: over the top and down the left edge -->
+  <path class="edge" d="M550,205 L550,190 L38,190 L38,650 L58,650"/>
+  <text class="label" x="45" y="565">tells the API where</text>
+  <text class="label" x="45" y="580">database a and b are,</text>
+  <text class="label" x="45" y="595">per section</text>
+
+  <!-- ===== Cache row: redis, between the databases and the API ===== -->
+
+  <!-- 7 redis -->
+  <rect class="box cache" x="430" y="460" width="240" height="95"/>
+  <circle cx="450" cy="480" r="11" fill="#333"/><text class="num" x="450" y="485" text-anchor="middle">7</text>
+  <text class="title" x="470" y="485">redis.yaml</text>
+  <text class="desc" x="450" y="507">A fast in-memory copy of answers,</text>
+  <text class="desc" x="450" y="524">so the databases are asked less.</text>
+  <text class="desc" x="450" y="541">Disposable.</text>
+
+  <path class="edge" d="M550,610 L550,557"/>
+  <text class="label" x="560" y="588">checks here first</text>
+
+  <!-- ===== API row, full width ===== -->
+
+  <!-- 8 api -->
+  <rect class="box api" x="60" y="610" width="980" height="80"/>
+  <circle cx="80" cy="630" r="11" fill="#333"/><text class="num" x="80" y="635" text-anchor="middle">8</text>
+  <text class="title" x="100" y="635">api.yaml</text>
+  <text class="desc" x="80" y="658">The booking logic, running as 3 identical copies (X-scaling). One front door spreads requests over the copies</text>
+  <text class="desc" x="80" y="675">and only uses copies that are ready. Reachable from your machine.</text>
+
+  <!-- api -> databases (past the cache, when it doesn't have the answer) -->
+  <path class="edge" d="M220,610 L220,407"/>
+  <text class="label" x="230" y="500">reads and saves bookings</text>
+  <text class="label" x="230" y="515">for sections 1–2</text>
+  <path class="edge" d="M880,610 L880,407"/>
+  <text class="label" x="870" y="500" text-anchor="end">reads and saves bookings</text>
+  <text class="label" x="870" y="515" text-anchor="end">for sections 3–4</text>
+
+  <!-- ===== Bottom row: ui and prometheus (same y) ===== -->
+
+  <!-- 9 ui -->
+  <rect class="box ui" x="60" y="770" width="320" height="95"/>
+  <circle cx="80" cy="790" r="11" fill="#333"/><text class="num" x="80" y="795" text-anchor="middle">9</text>
+  <text class="title" x="100" y="795">ui.yaml</text>
+  <text class="desc" x="80" y="817">The booking web page. A small web</text>
+  <text class="desc" x="80" y="834">server hands the page to your browser</text>
+  <text class="desc" x="80" y="851">and passes its data requests to the API.</text>
+
+  <path class="edge" d="M220,770 L220,692"/>
+  <text class="label" x="230" y="727">forwards the page's</text>
+  <text class="label" x="230" y="742">booking requests</text>
+
+  <!-- 10 prometheus -->
+  <rect class="box mon" x="720" y="770" width="320" height="95"/>
+  <circle cx="740" cy="790" r="11" fill="#333"/><text class="num" x="740" y="795" text-anchor="middle">10</text>
+  <text class="title" x="760" y="795">prometheus.yaml</text>
+  <text class="desc" x="740" y="817">Monitoring. Collects request numbers</text>
+  <text class="desc" x="740" y="834">from every API copy, to show the load</text>
+  <text class="desc" x="740" y="851">spread. May only look inside booking.</text>
+
+  <path class="edge" d="M880,770 L880,692"/>
+  <text class="label" x="870" y="727" text-anchor="end">collects each copy's</text>
+  <text class="label" x="870" y="742" text-anchor="end">numbers every 5 s</text>
+
+  <!-- 11 outside the cluster -->
+  <rect class="box" x="60" y="940" width="980" height="68"/>
+  <circle cx="80" cy="960" r="11" fill="#333"/><text class="num" x="80" y="965" text-anchor="middle">11</text>
+  <text class="title" x="100" y="965">Your machine</text>
+  <text class="desc" x="80" y="988">Outside the cluster. Only the page, the API and the monitoring are reachable from here (see k8s/README.md).</text>
+
+  <path class="edge" d="M220,940 L220,867"/>
+  <text class="label" x="230" y="920">opens the booking page (:30081)</text>
+  <path class="edge" d="M550,940 L550,692"/>
+  <text class="label" x="560" y="920">sends requests and load tests (:30080)</text>
+  <path class="edge" d="M880,940 L880,867"/>
+  <text class="label" x="890" y="920">views the numbers (:9090)</text>
+</svg>
