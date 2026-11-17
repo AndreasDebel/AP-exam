@@ -23,6 +23,12 @@ app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod())
 app.MapPrometheusScrapingEndpoint() // serverer /metrics
     .DisableHttpMetrics(); // gør, at Prometheus’ egne scrapes af /metrics ikke tælles med i vores request-tal
 
+// Called by Kubernetes every few seconds (readinessProbe in k8s/api.yaml).
+// A 200 means "send me traffic"; until then the Service leaves this pod out of the load balancing.
+// Dropped on purpose: checking Postgres and Redis. 200 only says this process is up and answering HTTP.
+app.MapGet("/health", () => Results.Ok())
+    .DisableHttpMetrics(); // the probes should not count in our request numbers either
+
 // Router: section id -> connection string
 var router = builder.Configuration.GetSection("Sections").Get<Dictionary<string, string>>()!;
 
@@ -40,7 +46,7 @@ app.MapGet("/sections/{id:int}", async (int id) =>
 
     if (cacheEnabled)
     {
-        // LOOK HERE! Asks the shared Redis pod (k8s/deployments/redis.yaml, reached through k8s/services/redis.yaml).
+        // LOOK HERE! Asks the shared Redis pod (Deployment and Service in k8s/redis.yaml).
         var cached = await redis.StringGetAsync(key);
         if (cached.HasValue)
         {

@@ -1,12 +1,12 @@
-# StatefulSet: postgres-a (-> pod postgres-a-0) with its own volume (PVC). Owns sections 1-2.
-# Its headless Service is services/postgres-a.yaml.
+# Database a: a StatefulSet (-> pod postgres-a-0) with its own volume (PVC), and its headless Service (further down).
+# Owns sections 1-2.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-a
   namespace: booking
 spec:
-  serviceName: postgres-a # The headless Service in services/postgres-a.yaml. Gives the pod the DNS name postgres-a-0.postgres-a.
+  serviceName: postgres-a # The headless Service below. Gives the pod the DNS name postgres-a-0.postgres-a.
   replicas: 1
   selector:
     matchLabels:
@@ -21,7 +21,7 @@ spec:
           image: postgres:16
           env:
             - name: POSTGRES_DB
-              value: booking # The "Database=booking" in secrets/db-credentials.yaml.
+              value: booking # The "Database=booking" in db-credentials.yaml.
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -37,7 +37,7 @@ spec:
       volumes:
         - name: schema
           configMap:
-            name: schema # configmaps/schema.yaml
+            name: schema # schema.yaml
   # One PVC per pod is created from this (data-postgres-a-0). The PV is provisioned automatically.
   volumeClaimTemplates:
     - metadata:
@@ -47,3 +47,14 @@ spec:
         resources:
           requests:
             storage: 1Gi
+---
+# Service: postgres-a (headless). Gives the pod from the StatefulSet above the DNS name postgres-a-0.postgres-a.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-a
+  namespace: booking
+spec:
+  clusterIP: None # Headless: DNS points straight at the pod.
+  selector:
+    app: postgres-a

@@ -1,4 +1,4 @@
-# Deployment: api (-> ReplicaSet -> 3 pods). Its Service is services/api.yaml.
+# The API: a Deployment (-> ReplicaSet -> 3 pods) and the Service in front of it (further down).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       labels:
-        app: api # services/api.yaml finds the pods by this label. Prometheus uses this label.
+        app: api # The Service below finds the pods by this label. Prometheus uses this label.
     spec:
       containers:
         - name: api
@@ -20,11 +20,18 @@ spec:
           image: srenits/eventbooking-api:latest
           ports:
             - name: http
-              containerPort: 8080 # Port 8080 is standard for .NET-container-images, but check targetPort in services/api.yaml – they have to match. If targetPort isn't set explicitly it's 8080.
+              containerPort: 8080 # Port 8080 is standard for .NET-container-images, but check targetPort in the Service below – they have to match. If targetPort isn't set explicitly it's 8080.
           imagePullPolicy: Always # Pull on every pod start, so a re-published :latest is picked up.
-          # Dropped on purpose: a readinessProbe. The API has no /health yet. Add back with X-scaling (#10).
+          # Kubernetes calls GET /health on each pod (the endpoint is in api/Program.cs).
+          # Until it answers 200, the Service sends the pod no requests. That matters when scaling up:
+          # a new copy only joins the load balancing once it is actually ready.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
           env:
-            # Overrides "Redis" in api/appsettings.json (localhost). services/redis.yaml gives the name redis.
+            # Overrides "Redis" in api/appsettings.json (localhost). The Service in redis.yaml gives the name redis.
             - name: Redis
               value: redis:6379
             # The cache switch. Issue #10 flips it to "false" to measure the API without Redis.
@@ -37,7 +44,7 @@ spec:
             - name: Sections__1
               valueFrom:
                 secretKeyRef:
-                  name: db-credentials # secrets/db-credentials.yaml
+                  name: db-credentials # db-credentials.yaml
                   key: a
             - name: Sections__2
               valueFrom:
@@ -54,3 +61,17 @@ spec:
                 secretKeyRef:
                   name: db-credentials
                   key: b
+---
+# Service: api (NodePort 30080). Load-balances over the pods from the Deployment above.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: booking
+spec:
+  type: NodePort
+  selector:
+    app: api # Balances across all pods with this label.
+  ports:
+    - port: 8080
+      nodePort: 30080

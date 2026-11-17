@@ -29,6 +29,15 @@ curl $U/sections/1
 kubectl logs -n booking -l app=api --prefix
 ```
 
+X-skalering (#10): ændr antallet af API-kopier. Servicen fordeler selv trafikken på dem, og en ny kopi får først trafik, når dens `/health` svarer 200 (readinessProbe i `api.yaml`):
+
+```
+kubectl scale deployment/api -n booking --replicas=1
+kubectl get pods -n booking -l app=api
+```
+
+`kubectl scale` holder kun til næste `apply -k`, hvor `replicas: 3` fra `api.yaml` gælder igen.
+
 Er der pushet et nyt API-image, så hent det ind i de kørende pods:
 
 ```
