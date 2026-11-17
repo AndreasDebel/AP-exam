@@ -27,6 +27,8 @@ data:
           # Put the pod name in a "pod" label.
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
+          - source_labels: [__meta_kubernetes_pod_ready]
+            target_label: pod_ready
 ---
 # RBAC: lets Prometheus list pods in "booking" so it can scrape each pod (kubernetes_sd_configs above).
 apiVersion: v1
