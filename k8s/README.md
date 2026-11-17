@@ -62,7 +62,7 @@ Stop alt:
 kubectl delete -k k8s
 ```
 
-Det sletter **ikke** databasens data. Minikube gemmer hver volume i en mappe opkaldt efter PVC'en (`/tmp/hostpath-provisioner/booking/...`) og fjerner den aldrig, så næste `apply -k` får de gamle data igen, og schemaet køres ikke. For at starte forfra med `sold = 0` skal mappen slettes mellem `delete -k` og `apply -k`:
+Det sletter **ikke** databasens data. Minikube gemmer hver volume i en mappe opkaldt efter PVC'en (`/tmp/hostpath-provisioner/booking/...`) og fjerner den aldrig, så næste `apply -k` får de gamle data igen, og schemaet køres ikke. `delete -k` fjerner Grafanas PVC, så eksportér dashboards først, hvis de skal gemmes separat. For at starte forfra med `sold = 0` skal mappen slettes mellem `delete -k` og `apply -k`:
 
 ```
 minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking

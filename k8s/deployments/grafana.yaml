@@ -1,0 +1,48 @@
+# Grafana keeps saved dashboards and settings in this volume.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: booking
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Deployment: grafana (1 pod). Data source is provisioned in configmaps/grafana.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: booking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.5.2
+          ports:
+            - name: web
+              containerPort: 3000
+          volumeMounts:
+            - name: datasource
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: data
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: datasource
+          configMap:
+            name: grafana-datasource
+        - name: data
+          persistentVolumeClaim:
+            claimName: grafana-data
