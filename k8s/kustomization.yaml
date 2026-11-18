@@ -18,8 +18,6 @@ resources:
   - postgres-a.yaml # database a (z-scaling, #11)
   - postgres-b.yaml # database b
   - prometheus.yaml
-  - configmaps/grafana.yaml
-  - deployments/grafana.yaml
-  - services/grafana.yaml
+  - grafana.yaml
   - schema.yaml # used by both databases
   - db-credentials.yaml # used by the API and both databases
