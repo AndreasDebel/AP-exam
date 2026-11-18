@@ -1,3 +1,20 @@
+# Grafana: data source, storage, Deployment, and Service in one file.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource
+  namespace: booking
+
+# LOOK HERE! Grafana queries the Prometheus Service in prometheus.yaml.
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus:9090
+        isDefault: true
+---
 # Grafana keeps saved dashboards and settings in this volume.
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -10,7 +27,7 @@ spec:
     requests:
       storage: 1Gi
 ---
-# Deployment: grafana (1 pod). Data source is provisioned in configmaps/grafana.yaml.
+# Deployment: grafana (1 pod). Data source is provisioned above.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,3 +63,16 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: grafana-data
+---
+# Service: grafana. Reach it with: kubectl port-forward -n booking svc/grafana 3000:3000
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: booking
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: web
