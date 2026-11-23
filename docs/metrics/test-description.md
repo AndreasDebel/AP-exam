@@ -23,7 +23,7 @@ Each row changes one thing from its Baseline (reads or writes). Everything else 
 | Oversell check      | Full setup, low section capacity        | writes | - (pass/fail)       |
 
 - **Reads** = `GET /sections/{id}`. **Writes** = `POST /sections/{id}/buy`. Never mixed in one run, so it is clear which one hits the limit.
-- **Fault isolation** measures only the sections on `postgres-a`. The question is whether a dead database slows down the healthy sections. The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
+- **Fault isolation** measures only the sections on `postgres-a`. The question is whether a dead database slows down the healthy sections. k6 runs the same load as Full setup (writes), spread across all 40 sections, so requests to the dead `postgres-b` sections keep loading the shared API copies (as buyers would keep trying). The table values come from the `postgres-a` sections only. Also write down how the dead-section requests failed (a fast error, or a hang of about 15 s). Set k6's `maxVUs` high, so hanging requests do not starve k6 of virtual users. The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
 - **Oversell check** is a correctness test, not a speed test: after the run, check `sold <= capacity` in both databases, and count the 409 answers to show that refusals actually happened.
 
 ## What each cell records
@@ -43,7 +43,8 @@ An **error** is any answer that is not 2xx. Sections are given enough capacity t
 The load climbs in steps (k6 `ramping-arrival-rate`, which sets requests per second directly):
 
 - **Step length:** 1 minute. The first 30 s let the system settle; the value is read from the last 30 s.
-- **Step size and start:** chosen by whoever runs the test. Write it in the cell.
+- **Step size:** decided during the Baseline runs, one for reads and one for writes, then reused unchanged for every later row of the same load type. Rows compared with each other must share a step size, or a difference may only be precision. Write it in the cell.
+- **Start:** free per row. A row expected to hold more load may start higher; only the step size must match.
 - **Stop:** when both limits have been crossed.
 
 Every step is measured; the limits are read afterwards.
@@ -51,7 +52,7 @@ Every step is measured; the limits are read afterwards.
 ## Metric source
 
 - **Table numbers:** Prometheus (built-in ASP.NET Core HTTP metrics). p95 per step: `histogram_quantile(0.95, rate(..._bucket[30s]))`, read at the end of the step.
-- **Tunnel check:** run a few tests where k6's own p95 is compared with Prometheus' p95. The gap is the time spent in the `minikube service` tunnel. Write the result here.
+- **Tunnel check:** 2 short runs on the Baseline (reads) setup, each at one constant load (k6 `constant-arrival-rate`) for 1 minute: one at **low load** (the first step of Baseline (reads)) and one at **high load** (the last step before Baseline (reads) crossed 200 ms). In each, compare k6's own p95 with Prometheus' p95 over the same minute. The gap is the time spent in the `minikube service` tunnel; low and high load together show whether that gap grows with load. A constant load is used so k6's single whole-run p95 matches one load level (no per-step tagging needed). Write the result here.
 - **Explaining why:** Grafana CPU per pod (cAdvisor). Reading it when a row does not improve:
   - All cores near 100% → the laptop is the limit, not the architecture. More nodes would help.
   - Postgres near 100%, API copies idle → the database is the bottleneck. X-scaling cannot help; Z-scaling might.
@@ -59,12 +60,14 @@ Every step is measured; the limits are read afterwards.
 
 ## Setup before testing
 
-| Change               | What                                                                                                        | Serves                                                      |
-|----------------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| Minikube with 6 CPUs | `minikube delete`, then `minikube start --cpus=6 --memory=8192`. Today it is capped at 2 CPUs.              | X-scaling (2 cores would cap it); 2 left for Windows and k6 |
-| cAdvisor CPU panel   | Prometheus scrapes the kubelet's built-in `/metrics/cadvisor`; a Grafana panel shows CPU per pod            | Explaining why a row does not improve                       |
-| `db` metric label    | The buy handler adds `db=postgres-a` / `postgres-b` to the existing HTTP metric (`IHttpMetricsTagsFeature`) | Fault isolation; Z-scaling (load per DB)                    |
-| Section capacity     | High enough that nothing sells out in a speed run; low only in the oversell check                           | Keeps 409 answers out of the speed rows                     |
+| Change               | What                                                                                                                                    | Serves                                                             |
+|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| Minikube with 6 CPUs | `minikube delete`, then `minikube start --cpus=6 --memory=8192`. Today it is capped at 2 CPUs.                                          | X-scaling (2 cores would cap it); 2 left for Windows and k6        |
+| cAdvisor CPU panel   | Prometheus scrapes the kubelet's built-in `/metrics/cadvisor`; a Grafana panel shows CPU per pod                                        | Explaining why a row does not improve                              |
+| `db` metric label    | The buy handler adds `db=postgres-a` / `postgres-b` to the existing HTTP metric (`IHttpMetricsTagsFeature`)                             | Fault isolation; Z-scaling (load per DB)                           |
+| DB connection cap    | Every API copy: `Maximum Pool Size=30` in its connection string, the same in every row. 3 copies × 30 stays under Postgres' default 100 | Keeps "too many clients" errors out of X-scaling and Full setup    |
+| 40 sections          | Speed runs use 40 sections, 20 per database (not the demo's 4); k6 spreads requests evenly across them                                  | Keeps row-lock queuing and near-100% cache hits out of the results |
+| Section capacity     | High enough that nothing sells out in a speed run (e.g. 1,000,000); low only in the oversell check                                      | Keeps 409 answers out of the speed rows                            |
 
 `minikube delete` wipes the database volumes. Reset the databases between runs anyway, so leftover `sold` counts never affect a run.
 
@@ -73,7 +76,9 @@ Every step is measured; the limits are read afterwards.
 - **Baseline (reads and writes):** 3 runs each. Report the spread; it is our estimate of run-to-run variation.
 - **Every other row:** 1 run. Judge a difference against the Baseline spread: a difference smaller than the spread is not a result.
 
-About 13 runs of ~10 minutes, so roughly 2 hours.
+- **Tunnel check:** 2 runs of 1 minute, after the Baseline (reads) runs (its steps decide the two load levels).
+
+About 13 runs of ~10 minutes plus the 2 short tunnel runs, so roughly 2 hours.
 
 ## Where findings go
 
