@@ -1,5 +1,4 @@
 <Solution>
   <Project Path="api/EventBooking.Api.csproj" />
-  <Project Path="LoadTest/LoadTest.csproj" />
   <Project Path="ui/EventBooking.Ui.csproj" />
 </Solution>
