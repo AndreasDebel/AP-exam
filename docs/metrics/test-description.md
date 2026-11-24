@@ -1,6 +1,6 @@
 # Test description
 
-How the numbers in `test-scenarios.svg` are produced. Part of issue #30. This file and the table record the design agreed in the grill session; where they disagree with `docs/exam-project.md`, these win.
+How the numbers in `test-scenarios.svg` are produced. Part of issue #30. This file and the table record the agreed design; where they disagree with `docs/exam-project.md`, these win.
 
 ## Goal
 
@@ -8,23 +8,26 @@ Each scenario should either **show** that a change improves the numbers, or **ex
 
 ## Scenarios
 
-Each row changes one thing from its Baseline (reads or writes). Everything else stays as Baseline.
+Each row changes one thing from the row it is compared with. Everything else stays the same.
 
-| Row                 | Setup                                   | Load   | Compare with        |
-|---------------------|-----------------------------------------|--------|---------------------|
-| Baseline (reads)    | 1 API · 1 Postgres · Redis off          | reads  | -                   |
-| Baseline (writes)   | 1 API · 1 Postgres · Redis off          | writes | -                   |
-| X-scaling the API   | 3 API · 1 Postgres · Redis off          | reads  | Baseline (reads)    |
-| Z-scaling the DB    | 1 API · 2 Postgres · Redis off          | writes | Baseline (writes)   |
-| Redis cache         | 1 API · 1 Postgres · Redis on (2 s TTL) | reads  | Baseline (reads)    |
-| Full setup (reads)  | 3 API · 2 Postgres · Redis on           | reads  | Baseline (reads)    |
-| Full setup (writes) | 3 API · 2 Postgres · Redis on           | writes | Baseline (writes)   |
-| Fault isolation     | Full setup, `postgres-b` stopped        | writes | Full setup (writes) |
-| Oversell check      | Full setup, low section capacity        | writes | - (pass/fail)       |
+| Row               | Setup                                   | Load   | Compare with      |
+|-------------------|-----------------------------------------|--------|-------------------|
+| Baseline (reads)  | 1 API · 1 Postgres · Redis off          | reads  | -                 |
+| Baseline (writes) | 1 API · 1 Postgres · Redis off          | writes | -                 |
+| X-scaling the API | 3 API · 1 Postgres · Redis off          | reads  | Baseline (reads)  |
+| Z-scaling the DB  | 1 API · 2 Postgres · Redis off          | writes | Baseline (writes) |
+| Redis cache       | 1 API · 1 Postgres · Redis on (2 s TTL) | reads  | Baseline (reads)  |
+| Fault isolation   | Z-scaling setup, `postgres-b` stopped   | writes | Z-scaling the DB  |
+| Oversell check    | Z-scaling setup, low section capacity   | writes | - (pass/fail)     |
 
 - **Reads** = `GET /sections/{id}`. **Writes** = `POST /sections/{id}/buy`. Never mixed in one run, so it is clear which one hits the limit.
-- **Fault isolation** measures only the sections on `postgres-a`. The question is whether a dead database slows down the healthy sections. k6 runs the same load as Full setup (writes), spread across all 40 sections, so requests to the dead `postgres-b` sections keep loading the shared API copies (as buyers would keep trying). The table values come from the `postgres-a` sections only. Also write down how the dead-section requests failed (a fast error, or a hang of about 15 s). Set k6's `maxVUs` high, so hanging requests do not starve k6 of virtual users. The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
-- **Oversell check** is a correctness test, not a speed test: after the run, check `sold <= capacity` in both databases, and count the 409 answers to show that refusals actually happened.
+- **How to switch setup:**
+  - API copies: `replicas` in `k8s/api.yaml`.
+  - Redis: `CacheEnabled` in `k8s/api.yaml`.
+  - 1 or 2 Postgres: in `k8s/db-credentials.yaml`, point `b`'s `Host` at `postgres-a-0.postgres-a` for 1 Postgres. Then every section uses database a.
+  - Run `kubectl apply -k k8s` after each change.
+- **Fault isolation** asks: when database b dies, do buyers on database a notice? k6 runs the same load as Z-scaling, spread over all 40 sections, so requests to the dead database keep loading the shared API (as buyers would keep trying). k6 tags every request with its database (`db:a` / `db:b`) and prints the response time for each separately. The table values come from `db:a`. Also write down how the `db:b` requests failed (a fast error, or a hang). The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
+- **Oversell check** is a correctness test, not a speed test. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
 
 ## What each cell records
 
@@ -36,68 +39,61 @@ Speed rows (all except the oversell check):
 
 200 ms is our own target response time (SLO), not a law. Users stay in flow up to about 1 s (Nielsen); 200 ms on the server leaves room for network and UI. Normal local latency is a few ms to a few tens of ms, so crossing 200 ms means requests are queuing: the system is saturated.
 
-An **error** is any answer that is not 2xx. Sections are given enough capacity that they never sell out in a speed run, so 409 ("only k places left") should not happen there.
+An **error** is any answer that is not 2xx or 409. Sections have so many places that they never sell out in a speed run, so 409 does not happen there anyway.
 
-## Load profile: stepped ramp
+## Load profile: one run per step
 
-The load climbs in steps (k6 `ramping-arrival-rate`, which sets requests per second directly):
+Each load step is its own k6 run: 1 minute at a fixed rate (k6 `constant-arrival-rate`, `RATE` requests per second). The next step is a new run with a higher `RATE`. Commands are in `LoadTest-k6/README.md`.
 
-- **Step length:** 1 minute. The first 30 s let the system settle; the value is read from the last 30 s.
 - **Step size:** decided during the Baseline runs, one for reads and one for writes, then reused unchanged for every later row of the same load type. Rows compared with each other must share a step size, or a difference may only be precision. Write it in the cell.
 - **Start:** free per row. A row expected to hold more load may start higher; only the step size must match.
 - **Stop:** when both limits have been crossed.
-
-Every step is measured; the limits are read afterwards.
+- **k6 could not keep up:** if k6's summary shows `dropped_iterations`, k6 did not manage to send `RATE` requests per second. Write it in the run's notes: that step measured k6, not our system.
 
 ## Metric source
 
-- **Table numbers:** Prometheus (built-in ASP.NET Core HTTP metrics). p95 per step: `histogram_quantile(0.95, rate(..._bucket[30s]))`, read at the end of the step.
-- **Tunnel check:** 2 short runs on the Baseline (reads) setup, each at one constant load (k6 `constant-arrival-rate`) for 1 minute: one at **low load** (the first step of Baseline (reads)) and one at **high load** (the last step before Baseline (reads) crossed 200 ms). In each, compare k6's own p95 with Prometheus' p95 over the same minute. The gap is the time spent in the `minikube service` tunnel; low and high load together show whether that gap grows with load. A constant load is used so k6's single whole-run p95 matches one load level (no per-step tagging needed). Write the result here.
-- **Explaining why:** Grafana CPU per pod (cAdvisor). Reading it when a row does not improve:
-  - All cores near 100% → the laptop is the limit, not the architecture. More nodes would help.
-  - Postgres near 100%, API copies idle → the database is the bottleneck. X-scaling cannot help; Z-scaling might.
-  - Everything well below 100% → the bottleneck is outside the cluster (tunnel or k6). Compare with k6's numbers.
+- **Table numbers:** k6's own summary after each run. `http_req_duration ... p(95)=` is the response time, `http_req_failed` is the error rate. k6 remembers every single response time, so its p95 is exact. (Prometheus only counts responses in "boxes", and 200 ms falls between its 100 ms and 250 ms boxes, so it would guess right where we read the limit.)
+- **Explaining why:** the Grafana dashboard (`docs/Grafana_dashboards.json`): response time for reads and buys, error rate, requests per API pod, and CPU per pod. Take screenshots during the runs; Prometheus data is lost with the cluster. Reading CPU per pod when a row does not improve:
+  - API pods at their limit (1 core each) → the API is the bottleneck. More copies help.
+  - Postgres at its limit (1 core) → the database is the bottleneck. X-scaling cannot help; Z-scaling might.
+  - Nothing at its limit → the bottleneck is outside the cluster (the `minikube service` tunnel or k6).
 
 ## Setup before testing
 
-| Change               | What                                                                                                                                    | Serves                                                             |
-|----------------------|-----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------|
-| Minikube with 6 CPUs | `minikube delete`, then `minikube start --cpus=6 --memory=8192`. Today it is capped at 2 CPUs.                                          | X-scaling (2 cores would cap it); 2 left for Windows and k6        |
-| cAdvisor CPU panel   | Prometheus scrapes the kubelet's built-in `/metrics/cadvisor`; a Grafana panel shows CPU per pod                                        | Explaining why a row does not improve                              |
-| `db` metric label    | The buy handler adds `db=postgres-a` / `postgres-b` to the existing HTTP metric (`IHttpMetricsTagsFeature`)                             | Fault isolation; Z-scaling (load per DB)                           |
-| DB connection cap    | Every API copy: `Maximum Pool Size=30` in its connection string, the same in every row. 3 copies × 30 stays under Postgres' default 100 | Keeps "too many clients" errors out of X-scaling and Full setup    |
-| 40 sections          | Speed runs use 40 sections, 20 per database (not the demo's 4); k6 spreads requests evenly across them                                  | Keeps row-lock queuing and near-100% cache hits out of the results |
-| Section capacity     | High enough that nothing sells out in a speed run (e.g. 1,000,000); low only in the oversell check                                      | Keeps 409 answers out of the speed rows                            |
+| Change               | What                                                                                                                                                       | Serves                                                          |
+|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
+| Minikube with 6 CPUs | `minikube delete`, then `minikube start --cpus=6 --memory=6000` (Docker Desktop had about 6.6 GB to give). 6 covers the pod limits below; the laptop's other cores are left for Windows and k6. Check that Docker Desktop is allowed at least 6 CPUs. | Room for every pod to reach its limit                           |
+| CPU limits           | Each API copy and each Postgres: at most 1 core. Redis, Prometheus, Grafana: a small cap. (In the yaml files under `resources`.)                           | X- and Z-scaling add real cores instead of sharing the same ones |
+| CPU per pod          | Prometheus reads cAdvisor (Kubernetes' built-in meter for CPU per container); a Grafana panel shows it                                                     | Explaining why a row does not improve                           |
+| DB connection cap    | `Maximum Pool Size=30` in both connection strings. 3 copies × 30 stays under Postgres' default 100                                                         | Keeps "too many clients" errors out of X-scaling                |
+| 40 sections          | Speed runs use sections 101-140: 101-120 in database a, 121-140 in database b. k6 spreads requests evenly across them. Sections 1-4 are the demo's        | Buys spread over many rows, so the database, not one row lock, gets busy |
+| Section capacity     | 1,000,000 places, so nothing sells out in a speed run; low only in the oversell check                                                                      | Keeps 409 answers out of the speed rows                         |
 
-`minikube delete` wipes the database volumes. Reset the databases between runs anyway, so leftover `sold` counts never affect a run.
+Reset the databases between runs, so leftover `sold` counts never affect a run (how: see the top of `k8s/kustomization.yaml`).
 
 ## Runs
 
-- **Baseline (reads and writes):** 3 runs each. Report the spread; it is our estimate of run-to-run variation.
+- **Baseline (reads and writes):** 3 runs each (each run = all its steps). Report the spread; it is our estimate of run-to-run variation.
 - **Every other row:** 1 run. Judge a difference against the Baseline spread: a difference smaller than the spread is not a result.
 
-- **Tunnel check:** 2 runs of 1 minute, after the Baseline (reads) runs (its steps decide the two load levels).
-
-About 13 runs of ~10 minutes plus the 2 short tunnel runs, so roughly 2 hours.
+About 10 runs of 5-8 steps of 1 minute, plus the oversell check, so roughly 1.5 hours.
 
 ## Where findings go
 
 - `test-scenarios.svg`: blanks filled in, the one-page results sheet.
 - `results.md`: raw numbers only (per step, per run). No interpretation.
-- `images/`: Grafana screenshots (Prometheus data is lost when the cluster is deleted).
-
-## Possible addition: remote load generator
-
-All tests run with k6 on the same laptop as the cluster. A possible addition is a second set of runs with k6 on **another device**, so the load generator no longer competes with the cluster for CPU. It is not part of the table now. If we add it:
-
-- k6 reaches the laptop through a Windows port proxy in front of the tunnel: `netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=<tunnel-port> connectaddress=127.0.0.1`, plus a firewall rule.
-- Do **not** use `kubectl port-forward svc/api`: it sends all traffic to one pod, so X-scaling would show nothing.
-- The port proxy is one extra hop the local runs do not have, so local and remote numbers are not fully comparable.
-- Untested: reaching the API from a second device has not been tried yet.
+- `images/`: Grafana screenshots.
 
 ## Known error sources
 
-- **Tunnel:** `minikube service --url` carries all local traffic and may become the bottleneck. Measured by the tunnel check above.
-- **One machine:** k6, the cluster, Prometheus and Grafana share the laptop's CPU and memory.
+- **Tunnel:** k6 reaches the API through `minikube service --url`, which carries all traffic and may become the bottleneck. It is the same for every row, so rows can still be compared. If CPU per pod shows nothing at its limit while p95 climbs, the tunnel or k6 is the likely cause.
+- **One machine:** k6, the cluster, Prometheus and Grafana share the laptop's CPU and memory. The CPU limits keep the pods apart, but not k6.
+- **Row locks:** every buy locks its section's row until it is done. With 40 sections this is spread out, but a real sale where everyone wants the same section would queue on that one row, and more databases would not help. That is an argument for how we would scale further (more, smaller sections).
+- **Warm-up:** each step's p95 covers the whole minute, including the first seconds while the system settles.
 - **Run-to-run variation:** only Baseline is repeated; other rows rely on its spread.
 - **Leftover data:** reset the databases between runs.
+
+## Next time
+
+- Run k6 inside the cluster or on its own machine, so the tunnel and the shared laptop drop out of the numbers.
+- A cluster with several nodes, so X- and Z-scaling get their own hardware instead of cores on one laptop.

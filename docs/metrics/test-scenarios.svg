@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="670" height="1044" viewBox="0 0 670 1044" font-family="Segoe UI, Helvetica, Arial, sans-serif">
-  <rect width="670" height="1044" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="670" height="844" viewBox="0 0 670 844" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="670" height="844" fill="#ffffff"/>
 
   <!-- Title -->
   <text x="20" y="38" font-size="22" font-weight="bold" fill="#1f2933">Test scenarios: what to measure</text>
@@ -17,21 +17,17 @@
   <rect x="20" y="524" width="630" height="100" fill="#f5f7fa"/>
   <rect x="20" y="624" width="630" height="100" fill="#ffffff"/>
   <rect x="20" y="724" width="630" height="100" fill="#f5f7fa"/>
-  <rect x="20" y="824" width="630" height="100" fill="#ffffff"/>
-  <rect x="20" y="924" width="630" height="100" fill="#f5f7fa"/>
 
   <!-- Grid lines -->
   <g stroke="#9aa5b1" stroke-width="1" fill="none">
-    <rect x="20" y="60" width="630" height="964"/>
-    <line x1="300" y1="60" x2="300" y2="1024"/>
+    <rect x="20" y="60" width="630" height="764"/>
+    <line x1="300" y1="60" x2="300" y2="824"/>
     <line x1="20" y1="224" x2="650" y2="224"/>
     <line x1="20" y1="324" x2="650" y2="324"/>
     <line x1="20" y1="424" x2="650" y2="424"/>
     <line x1="20" y1="524" x2="650" y2="524"/>
     <line x1="20" y1="624" x2="650" y2="624"/>
     <line x1="20" y1="724" x2="650" y2="724"/>
-    <line x1="20" y1="824" x2="650" y2="824"/>
-    <line x1="20" y1="924" x2="650" y2="924"/>
   </g>
 
   <!-- Row 1: Baseline (reads) -->
@@ -84,43 +80,23 @@
     <text x="314" y="598">step size:</text><text x="474" y="598">______ req/s</text>
   </g>
 
-  <!-- Row 6: Full setup (reads) -->
-  <text x="34" y="654" font-size="15" font-weight="bold" fill="#1f2933">Full setup (reads)</text>
-  <text x="34" y="676" font-size="13" fill="#3e4c59">3 API · 2 Postgres · Redis on</text>
-  <text x="34" y="696" font-size="12" font-style="italic" fill="#616e7c">Load: reads</text>
+  <!-- Row 6: Fault isolation -->
+  <text x="34" y="654" font-size="15" font-weight="bold" fill="#1f2933">Fault isolation</text>
+  <text x="34" y="676" font-size="13" fill="#3e4c59">Z-scaling setup, postgres-b stopped</text>
+  <text x="34" y="696" font-size="12" font-style="italic" fill="#616e7c">Load: writes · values from db:a only</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
     <text x="314" y="654">p95 > 200 ms at:</text><text x="474" y="654">______ req/s</text>
     <text x="314" y="676">errors > 1% at:</text><text x="474" y="676">______ req/s</text>
     <text x="314" y="698">step size:</text><text x="474" y="698">______ req/s</text>
   </g>
 
-  <!-- Row 7: Full setup (writes) -->
-  <text x="34" y="754" font-size="15" font-weight="bold" fill="#1f2933">Full setup (writes)</text>
-  <text x="34" y="776" font-size="13" fill="#3e4c59">3 API · 2 Postgres · Redis on</text>
-  <text x="34" y="796" font-size="12" font-style="italic" fill="#616e7c">Load: writes</text>
+  <!-- Row 7: Oversell check -->
+  <text x="34" y="754" font-size="15" font-weight="bold" fill="#1f2933">Oversell check</text>
+  <text x="34" y="776" font-size="13" fill="#3e4c59">Z-scaling setup, low capacity</text>
+  <text x="34" y="796" font-size="12" font-style="italic" fill="#616e7c">Load: writes · correctness, not speed</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="754">p95 > 200 ms at:</text><text x="474" y="754">______ req/s</text>
-    <text x="314" y="776">errors > 1% at:</text><text x="474" y="776">______ req/s</text>
-    <text x="314" y="798">step size:</text><text x="474" y="798">______ req/s</text>
-  </g>
-
-  <!-- Row 8: Fault isolation -->
-  <text x="34" y="854" font-size="15" font-weight="bold" fill="#1f2933">Fault isolation</text>
-  <text x="34" y="876" font-size="13" fill="#3e4c59">Full setup, postgres-b stopped</text>
-  <text x="34" y="896" font-size="12" font-style="italic" fill="#616e7c">Load: writes · postgres-a sections only</text>
-  <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="854">p95 > 200 ms at:</text><text x="474" y="854">______ req/s</text>
-    <text x="314" y="876">errors > 1% at:</text><text x="474" y="876">______ req/s</text>
-    <text x="314" y="898">step size:</text><text x="474" y="898">______ req/s</text>
-  </g>
-
-  <!-- Row 9: Oversell check -->
-  <text x="34" y="954" font-size="15" font-weight="bold" fill="#1f2933">Oversell check</text>
-  <text x="34" y="976" font-size="13" fill="#3e4c59">Full setup, low capacity</text>
-  <text x="34" y="996" font-size="12" font-style="italic" fill="#616e7c">Load: writes · correctness, not speed</text>
-  <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="954">sold ≤ capacity (a):</text><text x="474" y="954">yes / no</text>
-    <text x="314" y="976">sold ≤ capacity (b):</text><text x="474" y="976">yes / no</text>
-    <text x="314" y="998">409 answers:</text><text x="474" y="998">______</text>
+    <text x="314" y="754">sold ≤ capacity (a):</text><text x="474" y="754">yes / no</text>
+    <text x="314" y="776">sold ≤ capacity (b):</text><text x="474" y="776">yes / no</text>
+    <text x="314" y="798">409 answers:</text><text x="474" y="798">______</text>
   </g>
 </svg>

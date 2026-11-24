@@ -30,6 +30,14 @@ spec:
               path: /health
               port: http
             periodSeconds: 5
+          # Load test (#30): each copy may use at most 1 CPU core. Without a limit one copy takes every core
+          # on the laptop, and 3 copies just share the same cores, so X-scaling would show nothing.
+          # requests is kept low so all pods still fit on the single Minikube node.
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: "1"
           env:
             # Overrides "Redis" in api/appsettings.json (localhost). The Service in redis.yaml gives the name redis.
             - name: Redis
@@ -61,6 +69,49 @@ spec:
                 secretKeyRef:
                   name: db-credentials
                   key: b
+            # Load-test sections (#30, docs/metrics/test-description.md): 101-120 in database a, 121-140 in database b.
+            # 40 sections instead of 4, so buys spread over many rows and the database, not one row lock, is what gets busy.
+            # Sections 1-4 above are the demo's and are left alone. One line per section, same thing as the blocks above.
+            - { name: Sections__101, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__102, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__103, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__104, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__105, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__106, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__107, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__108, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__109, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__110, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__111, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__112, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__113, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__114, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__115, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__116, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__117, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__118, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__119, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__120, valueFrom: { secretKeyRef: { name: db-credentials, key: a } } }
+            - { name: Sections__121, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__122, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__123, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__124, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__125, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__126, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__127, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__128, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__129, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__130, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__131, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__132, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__133, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__134, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__135, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__136, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__137, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__138, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__139, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
+            - { name: Sections__140, valueFrom: { secretKeyRef: { name: db-credentials, key: b } } }
 ---
 # Service: api (NodePort 30080). Load-balances over the pods from the Deployment above.
 apiVersion: v1
