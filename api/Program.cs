@@ -73,6 +73,11 @@ app.MapGet("/sections/{id:int}", async (int id) =>
 
 app.MapPost("/sections/{id:int}/buy", async (int id, BuyRequest req) =>
 {
+    // The UI only sends 1-4, but anyone can call the API directly (NodePort 30080).
+    // Without this, count 0 "buys" nothing and a negative count lowers sold, creating places out of nothing.
+    if (req.Count < 1)
+        return Results.BadRequest("count must be at least 1");
+    
     await using var conn = new NpgsqlConnection(router[id.ToString()]);
     await conn.OpenAsync();
     await using var tx = await conn.BeginTransactionAsync();
@@ -82,7 +87,7 @@ app.MapPost("/sections/{id:int}/buy", async (int id, BuyRequest req) =>
     await using var select = new NpgsqlCommand("SELECT capacity - sold, disabled FROM section WHERE id = @id FOR UPDATE", conn, tx);
     select.Parameters.AddWithValue("id", id);
     
-    var free = (int)(await select.ExecuteScalarAsync())!;
+    int free;
     bool disabled;
     await using (var reader = await select.ExecuteReaderAsync())
     {
