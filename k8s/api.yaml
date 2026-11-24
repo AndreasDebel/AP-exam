@@ -30,14 +30,16 @@ spec:
               path: /health
               port: http
             periodSeconds: 5
-          # Load test (#30): each copy may use at most 1 CPU core. Without a limit one copy takes every core
+          # Load test (#30): each copy may use at most a quarter of a CPU core (250m). Without a limit one copy takes every core
           # on the laptop, and 3 copies just share the same cores, so X-scaling would show nothing.
+          # A quarter, not a whole core: the laptop has 4 physical cores shared with k6, and with 1 core per pod no pod
+          # reached its limit even at 2200 req/s (docs/metrics/other-results.md, runs A-C).
           # requests is kept low so all pods still fit on the single Minikube node.
           resources:
             requests:
               cpu: 100m
             limits:
-              cpu: "1"
+              cpu: 250m
           env:
             # Overrides "Redis" in api/appsettings.json (localhost). The Service in redis.yaml gives the name redis.
             - name: Redis
