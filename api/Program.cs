@@ -82,7 +82,7 @@ app.MapPost("/sections/{id:int}/buy", async (int id, BuyRequest req) =>
     await using var select = new NpgsqlCommand("SELECT capacity - sold, disabled FROM section WHERE id = @id FOR UPDATE", conn, tx);
     select.Parameters.AddWithValue("id", id);
     
-    var free = (int)(await select.ExecuteScalarAsync())!;
+    int free;
     bool disabled;
     await using (var reader = await select.ExecuteReaderAsync())
     {
