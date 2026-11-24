@@ -10,15 +10,15 @@ Each scenario should either **show** that a change improves the numbers, or **ex
 
 Each row changes one thing from the row it is compared with. Everything else stays the same.
 
-| Row               | Setup                                   | Load   | Compare with      |
-|-------------------|-----------------------------------------|--------|-------------------|
-| Baseline (reads)  | 1 API · 1 Postgres · Redis off          | reads  | -                 |
-| Baseline (writes) | 1 API · 1 Postgres · Redis off          | writes | -                 |
-| X-scaling the API | 3 API · 1 Postgres · Redis off          | reads  | Baseline (reads)  |
-| Z-scaling the DB  | 1 API · 2 Postgres · Redis off          | writes | Baseline (writes) |
-| Redis cache       | 1 API · 1 Postgres · Redis on (2 s TTL) | reads  | Baseline (reads)  |
-| Fault isolation   | Z-scaling setup, `postgres-b` stopped   | writes | Z-scaling the DB  |
-| Oversell check    | Z-scaling setup, low section capacity   | writes | - (pass/fail)     |
+| #   | Row               | Setup                                   | Load   | Compare with         |
+|-----|-------------------|-----------------------------------------|--------|----------------------|
+| 1   | Baseline (reads)  | 1 API · 1 Postgres · Redis off          | reads  | -                    |
+| 2   | Baseline (writes) | 1 API · 1 Postgres · Redis off          | writes | -                    |
+| 3   | X-scaling the API | 3 API · 1 Postgres · Redis off          | reads  | 1. Baseline (reads)  |
+| 4   | Z-scaling the DB  | 1 API · 2 Postgres · Redis off          | writes | 2. Baseline (writes) |
+| 5   | Redis cache       | 1 API · 1 Postgres · Redis on (2 s TTL) | reads  | 1. Baseline (reads)  |
+| 6   | Fault isolation   | 4's setup, `postgres-b` stopped         | writes | 4. Z-scaling the DB  |
+| 7   | Oversell check    | 4's setup, low section capacity         | writes | - (pass/fail)        |
 
 - **Reads** = `GET /sections/{id}`. **Writes** = `POST /sections/{id}/buy`. Never mixed in one run, so it is clear which one hits the limit.
 - **How to switch setup:**
@@ -26,12 +26,12 @@ Each row changes one thing from the row it is compared with. Everything else sta
   - Redis: `CacheEnabled` in `k8s/api.yaml`.
   - 1 or 2 Postgres: in `k8s/db-credentials.yaml`, point `b`'s `Host` at `postgres-a-0.postgres-a` for 1 Postgres. Then every section uses database a.
   - Run `kubectl apply -k k8s` after each change.
-- **Fault isolation** asks: when database b dies, do buyers on database a notice? k6 runs the same load as Z-scaling, spread over all 40 sections, so requests to the dead database keep loading the shared API (as buyers would keep trying). k6 tags every request with its database (`db:a` / `db:b`) and prints the response time for each separately. The table values come from `db:a`. Also write down how the `db:b` requests failed (a fast error, or a hang). The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
-- **Oversell check** is a correctness test, not a speed test. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
+- **6. Fault isolation** asks: when database b dies, do buyers on database a notice? k6 runs the same load as 4. Z-scaling, spread over all 40 sections, so requests to the dead database keep loading the shared API (as buyers would keep trying). k6 tags every request with its database (`db:a` / `db:b`) and prints the response time for each separately. The table values come from `db:a`. Also write down how the `db:b` requests failed (a fast error, or a hang). The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
+- **7. Oversell check** is a correctness test, not a speed test. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
 
 ## What each cell records
 
-Speed rows (all except the oversell check):
+Speed rows (1-6, all except 7. Oversell check):
 
 - **p95 > 200 ms at:** the first load step (req/s) where p95 goes over 200 ms.
 - **errors > 1% at:** the first load step (req/s) where the error rate goes over 1%.
@@ -48,6 +48,7 @@ One k6 run holds every step of a scenario run: 1 minute at a fixed rate per step
 - **Step size:** decided during the Baseline runs, one for reads and one for writes, then reused unchanged for every later row of the same load type. Rows compared with each other must share a step size, or a difference may only be precision. Write it in the cell.
 - **Start:** free per row. A row expected to hold more load may start higher; only the step size must match.
 - **Stop:** choose `STEPS` so the run crosses both limits; if it does not, run again with a higher `START`. Or stop earlier if the person running the test judges that a limit will not be reached. Then write `> 400` in the cell, where 400 is the last step measured, and give the reason in the run's notes in `results.md`.
+- **Baseline cells:** the average of the 3 runs' limits, plus **max spread**: the largest distance from that average to any one run. E.g. runs at 250 / 300 / 300 give `avg 283`, `max spread ± 33`. The 3 single values go in `results.md`.
 - **k6 could not keep up:** if a step's `dropped_iterations` is above 0, k6 did not manage to send that step's rate. Write it in the run's notes: that step measured k6, not our system.
 
 ## Metric source
@@ -73,8 +74,8 @@ Reset the databases between runs, so leftover `sold` counts never affect a run (
 
 ## Runs
 
-- **Baseline (reads and writes):** 3 runs each (each run = all its steps). Report the spread; it is our estimate of run-to-run variation.
-- **Every other row:** 1 run. Judge a difference against the Baseline spread: a difference smaller than the spread is not a result.
+- **1-2 Baseline (reads and writes):** 3 runs each (each run = all its steps). Report the spread; it is our estimate of run-to-run variation.
+- **3-7, every other row:** 1 run. Judge a difference against the Baseline spread: a difference smaller than the spread is not a result.
 
 About 10 runs of 5-8 steps of 1.5 minutes (1 minute of load + 30 s pause), plus the oversell check, so roughly 2 hours.
 
@@ -82,7 +83,7 @@ About 10 runs of 5-8 steps of 1.5 minutes (1 minute of load + 30 s pause), plus 
 
 - `test-scenarios.svg`: blanks filled in, the one-page results sheet.
 - `results.md`: raw numbers only (per step, per run). No interpretation.
-- `images/`: Grafana screenshots.
+- `images/`: Grafana screenshots, one subfolder per scenario (`1-baseline-reads/` … `7-oversell-check/`).
 
 ## Known error sources
 
