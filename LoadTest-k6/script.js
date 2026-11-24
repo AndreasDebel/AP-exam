@@ -70,3 +70,35 @@ export default function () {
 
     if (res.status === 409) refusals.add(1);
 }
+
+// k6 calls setup() once, before the first step starts. What it returns is handed to teardown() below.
+export function setup() {
+    return { startedAt: Date.now() / 1000 };   // Unix time in seconds, the unit Prometheus uses
+}
+
+// k6 calls teardown() once, after the last step is done. It asks Prometheus how busy the busiest API pod
+// and the busiest Postgres pod were in each step, and prints one line per step, just above k6's summary.
+// Needs the Prometheus port-forward from README step 3 (localhost:9090) to still be running.
+// Dropped on purpose: an error message if Prometheus can't be reached. The script crashes here instead.
+export function teardown(data) {
+    console.log('CPU per step (busiest pod in cores, 0.25 = its limit):');
+    for (let i = 0; i < stepCount; i++) {
+        const rate = start + i * stepSize;
+        // Step i ends 60 s after it starts, and steps start 90 s apart (see startTime above).
+        const stepEnd = data.startedAt + i * 90 + 60;
+        const api = busiestPodCpu('api-.*', stepEnd);
+        const postgres = busiestPodCpu('postgres-.*', stepEnd);
+        console.log(`rate_${rate}: API ${api}  Postgres ${postgres}`);
+    }
+}
+
+// The same CPU numbers as Grafana's "CPU per pod" panel, but averaged over the step's whole minute
+// ([1m] ending at stepEnd) and only for the busiest pod whose name matches podPattern.
+function busiestPodCpu(podPattern, stepEnd) {
+    const query = `max(sum by (pod) (rate(container_cpu_usage_seconds_total{job="cadvisor", namespace="booking", container!="", pod=~"${podPattern}"}[1m])))`;
+    // LOOK HERE! Asks Prometheus (k8s/prometheus.yaml) through the port-forward from README step 3.
+    const res = http.get(`http://localhost:9090/api/v1/query?query=${encodeURIComponent(query)}&time=${stepEnd}`);
+    // Prometheus answers e.g. {"data":{"result":[{"value":[1732456789,"0.734"]}]}}: [time, value as text].
+    const value = res.json().data.result[0].value[1];
+    return Number(value).toFixed(2);
+}

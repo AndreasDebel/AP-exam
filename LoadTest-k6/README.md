@@ -13,7 +13,7 @@ minikube delete
 minikube start --cpus=6 --memory=6000
 ```
 
-- `--cpus=6` er hele clusterets størrelse. Hver pod har sin egen grænse i yaml-filerne (`resources` → `limits`), og de deler de 6 kerner. Resten af laptoppens kerner er til Windows og k6.
+- `--cpus=6` er hele clusterets størrelse. Hver pod har sin egen grænse i yaml-filerne (`resources` → `limits`), og de deler de 6 kerner. API og Postgres må højst bruge 0,25 kerne hver, så resten af laptoppens 4 fysiske kerner er til Windows og k6.
 - `minikube delete` sletter også de gamle databaser. Det er meningen: så får de loadtest-sektionerne 101-140 fra `k8s/schema.yaml`.
 - Siger den, at Docker Desktop har for lidt hukommelse eller CPU, så sæt tallet ned, eller giv Docker Desktop mere under Settings → Resources.
 
@@ -82,6 +82,8 @@ Linjerne med `db:a` og `db:b` er de samme tal for hver database for sig. De brug
 
 Rækkefølgen i opsummeringen er alfabetisk (`rate_100` før `rate_50`), ikke i trin-rækkefølge.
 
+Lige over opsummeringen skriver k6 CPU pr. trin, hentet fra Prometheus, fx `rate_150: API 0.42  Postgres 0.18`. Det er den travleste API-pod og den travleste Postgres-pod i gennemsnit over trinnets minut (0.25 = podens grænse på en kvart kerne). Skriv dem i CPU-kolonnerne. Det kræver, at port-forwarden fra trin 3 stadig kører, ellers crasher k6 til sidst.
+
 ## 7. Skift setup mellem scenarierne
 
 yaml-filerne står som standard til demoen: 3 API-kopier, Redis til, 2 databaser. Hvert scenarie ændrer det her (se tabellen i `docs/metrics/test-description.md`):
@@ -102,4 +104,23 @@ Skiftes kun `db-credentials.yaml`, genstarter API'en ikke af sig selv. Så kør 
 kubectl rollout restart deployment/api -n booking
 ```
 
-Nulstil databaserne mellem kørsler (se toppen af `k8s/kustomization.yaml`), så gamle `sold`-tal ikke påvirker næste kørsel. Sæt yaml-filerne tilbage til demo-opsætningen, før I committer.
+Sæt yaml-filerne tilbage til demo-opsætningen, før I committer.
+
+## 8. Nulstil mellem kørsler
+
+Kun nødvendigt efter køb (`MODE=writes`), så gamle `sold`-tal ikke påvirker næste kørsel. Læsninger ændrer ikke data, så mellem to reads-kørsler kan du springe det over.
+
+Tag dine Grafana-screenshots først: nulstillingen sletter også Prometheus' data og Grafanas dashboard.
+
+```
+kubectl delete -k k8s
+```
+```
+minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking
+```
+```
+kubectl apply -k k8s
+```
+
+- `delete -k` sletter pods og volumes, men Minikube beholder databasefilerne. `rm -rf` sletter dem, så `schema.yaml` kører igen og `sold` starter på 0.
+- Port-forwards og tunnelen dør med pods'ene. Vent på `Running` og `1/1` (trin 2), start trin 3-5 igen, og brug den nye adresse fra trin 5. Importér dashboardet igen i Grafana (trin 4).
