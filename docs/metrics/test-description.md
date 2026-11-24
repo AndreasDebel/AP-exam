@@ -41,14 +41,14 @@ Speed rows (all except the oversell check):
 
 An **error** is any answer that is not 2xx or 409. Sections have so many places that they never sell out in a speed run, so 409 does not happen there anyway.
 
-## Load profile: one run per step
+## Load profile: all steps in one k6 run
 
-Each load step is its own k6 run: 1 minute at a fixed rate (k6 `constant-arrival-rate`, `RATE` requests per second). The next step is a new run with a higher `RATE`. Commands are in `LoadTest-k6/README.md`.
+One k6 run holds every step of a scenario run: 1 minute at a fixed rate per step (k6 `constant-arrival-rate`), then a 30 s pause, then the next step at a higher rate. `START`, `STEP` and `STEPS` set the first rate, the increment and the number of steps. k6's summary prints p95, error rate and `dropped_iterations` for each step separately (named after its rate, e.g. `scenario:rate_150`), and Grafana shows all the steps on one graph. Commands are in `LoadTest-k6/README.md`.
 
 - **Step size:** decided during the Baseline runs, one for reads and one for writes, then reused unchanged for every later row of the same load type. Rows compared with each other must share a step size, or a difference may only be precision. Write it in the cell.
 - **Start:** free per row. A row expected to hold more load may start higher; only the step size must match.
-- **Stop:** when both limits have been crossed.
-- **k6 could not keep up:** if k6's summary shows `dropped_iterations`, k6 did not manage to send `RATE` requests per second. Write it in the run's notes: that step measured k6, not our system.
+- **Stop:** choose `STEPS` so the run crosses both limits; if it does not, run again with a higher `START`. Or stop earlier if the person running the test judges that a limit will not be reached. Then write `> 400` in the cell, where 400 is the last step measured, and give the reason in the run's notes in `results.md`.
+- **k6 could not keep up:** if a step's `dropped_iterations` is above 0, k6 did not manage to send that step's rate. Write it in the run's notes: that step measured k6, not our system.
 
 ## Metric source
 
@@ -76,7 +76,7 @@ Reset the databases between runs, so leftover `sold` counts never affect a run (
 - **Baseline (reads and writes):** 3 runs each (each run = all its steps). Report the spread; it is our estimate of run-to-run variation.
 - **Every other row:** 1 run. Judge a difference against the Baseline spread: a difference smaller than the spread is not a result.
 
-About 10 runs of 5-8 steps of 1 minute, plus the oversell check, so roughly 1.5 hours.
+About 10 runs of 5-8 steps of 1.5 minutes (1 minute of load + 30 s pause), plus the oversell check, so roughly 2 hours.
 
 ## Where findings go
 
@@ -96,4 +96,5 @@ About 10 runs of 5-8 steps of 1 minute, plus the oversell check, so roughly 1.5 
 ## Next time
 
 - Run k6 inside the cluster or on its own machine, so the tunnel and the shared laptop drop out of the numbers.
+- Measure p95 inside the API too: add a 200 ms bucket to the API's response-time histogram (`api/Program.cs`), and record Prometheus' p95 next to k6's in `results.md`. Where k6's p95 is far above the API's own, the time is spent in the tunnel or k6, not in our system.
 - A cluster with several nodes, so X- and Z-scaling get their own hardware instead of cores on one laptop.

@@ -63,22 +63,24 @@ Den skriver fx `http://127.0.0.1:61029`. Adressen virker kun, så længe termina
 
 ## 6. Kør k6 (ny terminal)
 
-Én kørsel = ét trin: 1 minut ved fast fart. Næste trin er en ny kørsel med højere `RATE`.
+Én kørsel = alle trin: hvert trin er 1 minut ved fast fart, så 30 s pause, så næste trin med højere fart.
 
-Læsninger ved 50 requests pr. sekund:
+Læsninger: 8 trin, 50, 100, 150 ... 400 requests pr. sekund (8 × 1,5 min = 12 minutter):
 ```
-k6 run -e MODE=reads -e RATE=50 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
+k6 run -e MODE=reads -e START=50 -e STEP=50 -e STEPS=8 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
 ```
 
 Køb: samme kommando med `MODE=writes`.
 
-Skriv to tal fra k6's opsummering ind i `docs/metrics/results.md`:
-- `http_req_duration ... p(95)=`: svartiden.
-- `http_req_failed`: fejlprocenten.
+k6's opsummering har en linje pr. trin, opkaldt efter farten, fx `{ scenario:rate_150 }`. Skriv for hvert trin ind i `docs/metrics/results.md`:
+- `http_req_duration { scenario:rate_150 } ... p(95)=`: svartiden.
+- `http_req_failed { scenario:rate_150 }`: fejlprocenten.
 
-Står der `dropped_iterations` i opsummeringen, nåede k6 ikke at sende `RATE` requests pr. sekund. Skriv det under Notes: det trin målte k6, ikke systemet.
+Er `dropped_iterations { scenario:rate_150 }` over 0, nåede k6 ikke at sende hele farten i det trin. Skriv det under Notes: det trin målte k6, ikke systemet.
 
-`http_req_duration{db:a}` og `{db:b}` er svartiden for hver database for sig. De bruges til fault isolation.
+Linjerne med `db:a` og `db:b` er de samme tal for hver database for sig. De bruges til fault isolation.
+
+Rækkefølgen i opsummeringen er alfabetisk (`rate_100` før `rate_50`), ikke i trin-rækkefølge.
 
 ## 7. Skift setup mellem scenarierne
 

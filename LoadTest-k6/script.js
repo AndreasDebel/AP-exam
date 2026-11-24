@@ -1,29 +1,50 @@
 import http from 'k6/http';
 import { Counter } from 'k6/metrics';
 
-// One run = one load step (docs/metrics/test-description.md). Run the script once per step with a new RATE.
-const mode = __ENV.MODE;          // "reads" eller "writes"
-const baseUrl = __ENV.BASE_URL;   // fx "http://127.0.0.1:54321" fra "minikube service api -n booking --url"
-const rate = Number(__ENV.RATE);  // requests pr. sekund i denne kørsel, fx 100
+// One k6 run = all load steps of one scenario run (docs/metrics/test-description.md).
+// Step 1 sends START requests/s for 1 minute, step 2 START+STEP, and so on, STEPS times.
+const mode = __ENV.MODE;                  // "reads" eller "writes"
+const baseUrl = __ENV.BASE_URL;           // fx "http://127.0.0.1:54321" fra "minikube service api -n booking --url"
+const start = Number(__ENV.START);        // requests pr. sekund i første trin, fx 50
+const stepSize = Number(__ENV.STEP);      // hvor meget hvert trin lægger til, fx 50
+const stepCount = Number(__ENV.STEPS);    // antal trin, fx 8
 
-// k6 reads "options" before it starts and runs the default function below RATE times per second for 1 minute.
+// Each step is its own k6 "scenario": 1 minute at a fixed rate, then a 30 s pause before the next one starts.
+// The pause lets requests from the previous step finish (k6 waits up to 30 s for them), so steps never overlap,
+// and it shows up as a dip between the steps in Grafana.
+// The scenario is named after its rate, e.g. "rate_150". k6 tags every request with that name, which the
+// thresholds below use to print one line per step.
+const scenarios = {};
+const thresholds = {};
+for (let i = 0; i < stepCount; i++) {
+    const rate = start + i * stepSize;
+    const name = `rate_${rate}`;
+    scenarios[name] = {
+        executor: 'constant-arrival-rate',   // fast fart: rate requests pr. sekund, uanset hvor hurtigt API'en svarer
+        rate: rate,
+        timeUnit: '1s',
+        duration: '1m',
+        startTime: `${i * 90}s`,             // 60 s trin + 30 s pause
+        preAllocatedVUs: 20,
+        maxVUs: 1000,   // mange, så requests der hænger (død database) ikke løber tør for VUs
+    };
+
+    // Ikke pass/fail-grænser (">= 0" er altid sandt). Linjerne får bare k6 til at skrive tallene
+    // ud for hvert trin i sin opsummering: svartid og fejlprocent for trinnet som helhed (tabellen),
+    // for database a og b hver for sig (fault isolation), og om k6 nåede at sende det hele.
+    thresholds[`http_req_duration{scenario:${name}}`] = ['p(95)>=0'];
+    thresholds[`http_req_failed{scenario:${name}}`] = ['rate>=0'];
+    thresholds[`http_req_duration{scenario:${name},db:a}`] = ['p(95)>=0'];
+    thresholds[`http_req_failed{scenario:${name},db:a}`] = ['rate>=0'];
+    thresholds[`http_req_duration{scenario:${name},db:b}`] = ['p(95)>=0'];
+    thresholds[`http_req_failed{scenario:${name},db:b}`] = ['rate>=0'];
+    thresholds[`dropped_iterations{scenario:${name}}`] = ['count>=0'];
+}
+
+// k6 reads "options" before it starts, and runs the default function below at each scenario's rate.
 export const options = {
-    scenarios: {
-        step: {
-            executor: 'constant-arrival-rate',   // fast fart: RATE requests pr. sekund, uanset hvor hurtigt API'en svarer
-            rate: rate,
-            timeUnit: '1s',
-            duration: '1m',
-            preAllocatedVUs: 50,
-            maxVUs: 1000,   // mange, så requests der hænger (død database) ikke løber tør for VUs
-        },
-    },
-    // Ikke en pass/fail-grænse (p95 >= 0 er altid sand). Linjerne får bare k6 til at skrive
-    // svartiden for database a og b ud hver for sig i sin opsummering (fault isolation).
-    thresholds: {
-        'http_req_duration{db:a}': ['p(95)>=0'],
-        'http_req_duration{db:b}': ['p(95)>=0'],
-    },
+    scenarios: scenarios,
+    thresholds: thresholds,
 };
 
 const refusals = new Counter('refusals');
