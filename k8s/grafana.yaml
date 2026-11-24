@@ -48,6 +48,12 @@ spec:
       containers:
         - name: grafana
           image: grafana/grafana:11.5.2
+          # Load test (#30): a small cap, so Grafana cannot take CPU from the API and databases being measured.
+          resources:
+            requests:
+              cpu: 50m
+            limits:
+              cpu: 250m
           ports:
             - name: web
               containerPort: 3000

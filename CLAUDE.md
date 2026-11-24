@@ -55,6 +55,7 @@ comment. Silent narrowing is how simple code turns into subtly wrong code.
 - `ui/` - Blazor WebAssembly booking UI (`EventBooking.Ui`), the walking skeleton's front end (issue #5).
 - `docs/assignment.md` - what the exam requires, independent of our system.
 - `docs/exam-project.md` - decisions for our event booking platform.
+- `docs/metrics/` - the agreed load-test design and its results. Read `docs/metrics/INDEX.md` first before touching load tests, metrics, Prometheus/Grafana, or issue #30.
 - `docs/visuals/` - architecture sketches and diagrams (whiteboard photos, `.svg`, `.drawio`). Commit the editable source alongside any exported image; the repo is public, so no faces or personal data.
 - `docs/agents/` - how agent skills use the issue tracker, labels and domain docs.
 - `GLOSSARY.md` - domain terms; use them in code and docs.

@@ -21,6 +21,12 @@ spec:
       containers:
         - name: postgres
           image: postgres:16
+          # Load test (#30): at most 1 CPU core. Same as postgres-a.yaml.
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: "1"
           env:
             - name: POSTGRES_DB
               value: booking # The "Database=booking" in db-credentials.yaml.

@@ -19,6 +19,12 @@ spec:
       containers:
         - name: redis
           image: redis:7
+          # Load test (#30): a small cap, so Redis cannot take CPU from the API and databases being measured.
+          resources:
+            requests:
+              cpu: 50m
+            limits:
+              cpu: 250m
           ports:
             - containerPort: 6379
 ---
