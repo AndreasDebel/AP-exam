@@ -1,0 +1,185 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="deployment" name="Deploymentdiagram">
+    <mxGraphModel dx="3095" dy="1214" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="1120" background="light-dark(#ffffff, #121212)" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;" value="&lt;b&gt;EventBooking – deploymentdiagram (Minikube, namespace booking)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="700" x="300" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="mk" parent="1" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«device»&lt;br&gt;&lt;b&gt;Minikube (én node)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="1020" width="1040" x="20" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ns" parent="mk" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«execution environment»&lt;br&gt;&lt;b&gt;namespace: booking&lt;/b&gt;" vertex="1">
+          <mxGeometry height="940" width="1000" x="20" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="graf" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod / Deployment»&lt;br&gt;&lt;b&gt;grafana-pod&lt;/b&gt;" vertex="1">
+          <mxGeometry height="130" width="400" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="grafImg" parent="graf" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="grafana/grafana:11.5.2 :3000" vertex="1">
+          <mxGeometry height="50" width="180" x="200" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="grafPvc" parent="graf" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontSize=11;" value="PVC grafana-data 1Gi" vertex="1">
+          <mxGeometry height="40" width="160" x="20" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="prom" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod / Deployment»&lt;br&gt;&lt;b&gt;prometheus-pod&lt;/b&gt;" vertex="1">
+          <mxGeometry height="120" width="300" x="40" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="promImg" parent="prom" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="prom/prometheus:v3 :9090" vertex="1">
+          <mxGeometry height="45" width="200" x="50" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod / Deployment»&lt;br&gt;&lt;b&gt;ui-pod&lt;br&gt;(image mortenj91/eventbooking-ui:latest)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="300" width="420" x="540" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx" parent="ui" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«execution environment»&lt;br&gt;&lt;b&gt;nginx :80&lt;/b&gt;" vertex="1">
+          <mxGeometry height="190" width="360" x="30" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uiFiles" parent="nginx" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="Blazor-filer&lt;br&gt;(html, js, wasm)" vertex="1">
+          <mxGeometry height="60" width="160" x="100" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="svc" parent="ns" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#000000;fontSize=11;" value="«Service: load balancer»&lt;br&gt;&lt;b&gt;Service api&lt;/b&gt;&lt;br&gt;NodePort 30080 → :8080" vertex="1">
+          <mxGeometry height="62" width="260" x="600" y="368" as="geometry" />
+        </mxCell>
+        <mxCell id="api" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«Deployment»&lt;br&gt;&lt;b&gt;Deployment api (replicas: 3)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="230" width="920" x="40" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="apiPod1" parent="api" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod»&lt;br&gt;&lt;b&gt;api-pod 1&lt;/b&gt;" vertex="1">
+          <mxGeometry height="135" width="280" x="20" y="75" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" parent="apiPod1" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="srenits/eventbooking-api:latest&lt;br&gt;:8080 (router)" vertex="1">
+          <mxGeometry height="50" width="220" x="30" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apiPod2" parent="api" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod»&lt;br&gt;&lt;b&gt;api-pod 2&lt;/b&gt;" vertex="1">
+          <mxGeometry height="135" width="280" x="320" y="75" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" parent="apiPod2" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="srenits/eventbooking-api:latest&lt;br&gt;:8080 (router)" vertex="1">
+          <mxGeometry height="50" width="220" x="30" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apiPod3" parent="api" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod»&lt;br&gt;&lt;b&gt;api-pod 3&lt;/b&gt;" vertex="1">
+          <mxGeometry height="135" width="280" x="620" y="75" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" parent="apiPod3" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="srenits/eventbooking-api:latest&lt;br&gt;:8080 (router)" vertex="1">
+          <mxGeometry height="50" width="220" x="30" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod / Deployment»&lt;br&gt;&lt;b&gt;redis-pod&lt;/b&gt;" vertex="1">
+          <mxGeometry height="160" width="260" x="40" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="redisImg" parent="redis" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="redis:7 :6379&lt;br&gt;availability:{id}, TTL 2 s" vertex="1">
+          <mxGeometry height="55" width="200" x="30" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="pga" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod / StatefulSet»&lt;br&gt;&lt;b&gt;postgres-a-0&lt;/b&gt;" vertex="1">
+          <mxGeometry height="180" width="300" x="340" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="pgaDb" parent="pga" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#f5f5f5;fontSize=11;" value="postgres:16 :5432&lt;br&gt;booking.section&lt;br&gt;(sektion 1-2 live)" vertex="1">
+          <mxGeometry height="100" width="130" x="150" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="pgaPvc" parent="pga" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontSize=11;" value="PVC data-postgres-a-0&lt;br&gt;1Gi" vertex="1">
+          <mxGeometry height="45" width="125" x="15" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="pgb" parent="ns" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«pod / StatefulSet»&lt;br&gt;&lt;b&gt;postgres-b-0&lt;/b&gt;" vertex="1">
+          <mxGeometry height="180" width="300" x="660" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="pgbDb" parent="pgb" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#f5f5f5;fontSize=11;" value="postgres:16 :5432&lt;br&gt;booking.section&lt;br&gt;(sektion 3-4 live)" vertex="1">
+          <mxGeometry height="100" width="130" x="150" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="pgbPvc" parent="pgb" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontSize=11;" value="PVC data-postgres-b-0&lt;br&gt;1Gi" vertex="1">
+          <mxGeometry height="45" width="125" x="15" y="85" as="geometry" />
+        </mxCell>
+        <mxCell id="pc" parent="1" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«device»&lt;br&gt;&lt;b&gt;Køberens pc&lt;/b&gt;" vertex="1">
+          <mxGeometry height="250" width="260" x="1110" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" parent="pc" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«execution environment»&lt;br&gt;&lt;b&gt;Browser&lt;/b&gt;" vertex="1">
+          <mxGeometry height="170" width="210" x="20" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wasm" parent="browser" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="Blazor WASM UI&lt;br&gt;(Book.razor)" vertex="1">
+          <mxGeometry height="60" width="160" x="25" y="75" as="geometry" />
+        </mxCell>
+        <mxCell id="demo" parent="1" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«device»&lt;br&gt;&lt;b&gt;Demo-pc&lt;/b&gt;" vertex="1">
+          <mxGeometry height="150" width="280" x="1110" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="k6" parent="demo" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=10;verticalAlign=top;align=center;container=1;collapsible=0;fontSize=12;fillColor=#ffffff;" value="«load generator»&lt;br&gt;&lt;b&gt;k6&lt;/b&gt;" vertex="1">
+          <mxGeometry height="75" width="140" x="70" y="55" as="geometry" />
+        </mxCell>
+        <mxCell id="noteDemo" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=6;spacingTop=2;fontSize=11;" value="Til demoen er køberens pc, demo-pc&#39;en og Minikube den samme fysiske maskine (Minikube med Docker-driveren på Windows). k6 rammer API&#39;et via tunnelen fra &quot;minikube service api --url&quot;." vertex="1">
+          <mxGeometry height="80" width="400" x="1110" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="noteRouter" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=6;spacingTop=2;fontSize=11;" value="&lt;b&gt;Her beslutter routeren.&lt;/b&gt;&lt;br&gt;Hver api-pod læser Sections__1..4 (env fra Secret db-credentials) og vælger database pr. sektion:&lt;br&gt;1, 2 → postgres-a-0.postgres-a&lt;br&gt;3, 4 → postgres-b-0.postgres-b" vertex="1">
+          <mxGeometry height="105" width="400" x="1110" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="noteDb" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=6;spacingTop=2;fontSize=11;" value="Begge databaser får samme schema (ConfigMap schema, initdb) og har alle 4 rækker; routeren afgør, hvilken række der er &quot;live&quot;. Headless Services giver DNS-navnene." vertex="1">
+          <mxGeometry height="80" width="400" x="1110" y="900" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="uiFiles" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;dashed=1;entryX=0;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" target="wasm" value="«HTTP»&lt;br&gt;downloades ved sideåbning&lt;br&gt;(NodePort 30081)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="wasm" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.002;exitY=0.274;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1.004;entryY=0.145;entryDx=0;entryDy=0;entryPerimeter=0;" target="nginx" value="«HTTP»&lt;br&gt;/sections/...&lt;br&gt;(NodePort 30081)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="nginx" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="svc" value="«HTTP»&lt;br&gt;proxy_pass http://api:8080">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="k6" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="svc" value="«HTTP»&lt;br&gt;via tunnel (NodePort 30080)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="svc" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="apiPod1" value="«HTTP»">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="480" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="svc" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="apiPod2" value="«HTTP»">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="svc" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="apiPod3" value="«HTTP»">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="api" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="redis" value="«TCP/Redis»&lt;br&gt;Service redis (ClusterIP)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="api" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="pga" value="«TCP/Postgres»&lt;br&gt;sektion 1, 2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" edge="1" parent="1" source="api" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="pgb" value="«TCP/Postgres»&lt;br&gt;sektion 3, 4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" edge="1" parent="1" source="prom" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="api" value="«HTTP»&lt;br&gt;scrape /metrics hver 5 s&lt;br&gt;direkte til hver pod (ikke via Service)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" edge="1" parent="1" source="graf" style="endArrow=open;endSize=10;html=1;fontSize=11;labelBackgroundColor=#ffffff;" target="prom" value="«HTTP/PromQL»">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="noteSvc" parent="1" style="shape=note;size=14;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;verticalAlign=top;spacingLeft=6;spacingTop=2;fontSize=11;" value="&lt;b&gt;X-skalering sker her.&lt;/b&gt;&lt;br&gt;Service api fordeler hvert kald til én af de pods, der har label app=api og svarer 200 på /health (readinessProbe).&lt;div&gt;Kun Service api er tegnet, fordi den fordeler kald mellem flere pods. Alle andre dele har også en Service, men de peger på én pod og er udeladt.&lt;/div&gt;" vertex="1">
+          <mxGeometry height="75" width="400" x="1110" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="n16" edge="1" parent="1" source="noteRouter" style="endArrow=none;dashed=1;dashPattern=2 4;html=1;" target="api">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n17" edge="1" parent="1" source="noteDb" style="endArrow=none;dashed=1;dashPattern=2 4;html=1;" target="pgb">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n18" edge="1" parent="1" source="noteDemo" style="endArrow=none;dashed=1;dashPattern=2 4;html=1;" target="demo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n19" edge="1" parent="1" source="noteSvc" style="endArrow=none;dashed=1;dashPattern=2 4;html=1;" target="svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="H7O-VtTQPG07IMeOLbCy-3" edge="1" parent="1" source="demo" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=-5;entryPerimeter=0;defaultLabelBackgroundColor=page;labelPadding=0 4;" target="graf">
+          <mxGeometry relative="1" x="0.1367" as="geometry">
+            <Array as="points">
+              <mxPoint x="1404" y="455" />
+              <mxPoint x="1404" y="48.2" />
+              <mxPoint x="63.2" y="48.2" />
+              <mxPoint x="63.2" y="220" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="H7O-VtTQPG07IMeOLbCy-5" connectable="0" parent="H7O-VtTQPG07IMeOLbCy-3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];inheritText=1;defaultLabelBackgroundColor=page;labelPadding=0 4;" value="«HTTP»&lt;div&gt;via kubectl port-forward&lt;/div&gt;&lt;div&gt;(localhost:3000)&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.8217" y="-2" as="geometry">
+            <mxPoint x="29" y="59" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
