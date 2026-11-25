@@ -595,7 +595,7 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (pod) (\n  rate(container_cpu_usage_seconds_total{job=\"cadvisor\", namespace=\"booking\", container!=\"\"}[30s])\n)",
+          "expr": "sum by (pod) (\n  rate(container_cpu_usage_seconds_total{job=\"cadvisor\", namespace=\"booking\", container!=\"\"}[1m])\n)",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"

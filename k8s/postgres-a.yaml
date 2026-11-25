@@ -19,12 +19,13 @@ spec:
       containers:
         - name: postgres
           image: postgres:16
-          # Load test (#30): at most 1 CPU core, so a second database (Z-scaling) adds a core instead of sharing one.
+          # Load test (#30): at most a quarter of a CPU core (250m, same reason as in api.yaml), so a second database
+          # (Z-scaling) adds its own quarter instead of sharing one.
           resources:
             requests:
               cpu: 100m
             limits:
-              cpu: "1"
+              cpu: 250m
           env:
             - name: POSTGRES_DB
               value: booking # The "Database=booking" in db-credentials.yaml.

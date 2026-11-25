@@ -13,7 +13,7 @@ minikube delete
 minikube start --cpus=6 --memory=6000
 ```
 
-- `--cpus=6` er hele clusterets størrelse. Hver pod har sin egen grænse i yaml-filerne (`resources` → `limits`), og de deler de 6 kerner. Resten af laptoppens kerner er til Windows og k6.
+- `--cpus=6` er hele clusterets størrelse. Hver pod har sin egen grænse i yaml-filerne (`resources` → `limits`), og de deler de 6 kerner. API og Postgres må højst bruge 0,25 kerne hver, så resten af laptoppens 4 fysiske kerner er til Windows og k6.
 - `minikube delete` sletter også de gamle databaser. Det er meningen: så får de loadtest-sektionerne 101-140 fra `k8s/schema.yaml`.
 - Siger den, at Docker Desktop har for lidt hukommelse eller CPU, så sæt tallet ned, eller giv Docker Desktop mere under Settings → Resources.
 
@@ -63,22 +63,26 @@ Den skriver fx `http://127.0.0.1:61029`. Adressen virker kun, så længe termina
 
 ## 6. Kør k6 (ny terminal)
 
-Én kørsel = ét trin: 1 minut ved fast fart. Næste trin er en ny kørsel med højere `RATE`.
+Én kørsel = 1 minuts warm-up ved første trins fart (måles ikke) + 30 s pause, og så alle trin: hvert trin er 1 minut ved fast fart, så 30 s pause, så næste trin med højere fart.
 
-Læsninger ved 50 requests pr. sekund:
+Læsninger: 8 trin, 50, 100, 150 ... 400 requests pr. sekund (1,5 min warm-up + 8 × 1,5 min = 13,5 minutter):
 ```
-k6 run -e MODE=reads -e RATE=50 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
+k6 run -e MODE=reads -e START=50 -e STEP=50 -e STEPS=8 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
 ```
 
 Køb: samme kommando med `MODE=writes`.
 
-Skriv to tal fra k6's opsummering ind i `docs/metrics/results.md`:
-- `http_req_duration ... p(95)=`: svartiden.
-- `http_req_failed`: fejlprocenten.
+k6's opsummering har en linje pr. trin, opkaldt efter farten, fx `{ scenario:rate_150 }`. Skriv for hvert trin ind i `docs/metrics/results.md`:
+- `http_req_duration { scenario:rate_150 } ... p(95)=`: svartiden.
+- `http_req_failed { scenario:rate_150 }`: fejlprocenten.
 
-Står der `dropped_iterations` i opsummeringen, nåede k6 ikke at sende `RATE` requests pr. sekund. Skriv det under Notes: det trin målte k6, ikke systemet.
+Er `dropped_iterations { scenario:rate_150 }` over 0, nåede k6 ikke at sende hele farten i det trin. Skriv det under Notes: det trin målte k6, ikke systemet.
 
-`http_req_duration{db:a}` og `{db:b}` er svartiden for hver database for sig. De bruges til fault isolation.
+Linjerne med `db:a` og `db:b` er de samme tal for hver database for sig. De bruges til fault isolation.
+
+Rækkefølgen i opsummeringen er alfabetisk (`rate_100` før `rate_50`), ikke i trin-rækkefølge.
+
+Lige over opsummeringen skriver k6 CPU pr. trin, hentet fra Prometheus, fx `rate_150: API 0.42  Postgres 0.18`. Det er den travleste API-pod og den travleste Postgres-pod i gennemsnit over trinnets minut (0.25 = podens grænse på en kvart kerne). Skriv dem i CPU-kolonnerne. Det kræver, at port-forwarden fra trin 3 stadig kører, ellers crasher k6 til sidst.
 
 ## 7. Skift setup mellem scenarierne
 
@@ -100,4 +104,23 @@ Skiftes kun `db-credentials.yaml`, genstarter API'en ikke af sig selv. Så kør 
 kubectl rollout restart deployment/api -n booking
 ```
 
-Nulstil databaserne mellem kørsler (se toppen af `k8s/kustomization.yaml`), så gamle `sold`-tal ikke påvirker næste kørsel. Sæt yaml-filerne tilbage til demo-opsætningen, før I committer.
+Sæt yaml-filerne tilbage til demo-opsætningen, før I committer.
+
+## 8. Nulstil mellem kørsler
+
+Kun nødvendigt efter køb (`MODE=writes`), så gamle `sold`-tal ikke påvirker næste kørsel. Læsninger ændrer ikke data, så mellem to reads-kørsler kan du springe det over.
+
+Tag dine Grafana-screenshots først: nulstillingen sletter også Prometheus' data og Grafanas dashboard.
+
+```
+kubectl delete -k k8s
+```
+```
+minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking
+```
+```
+kubectl apply -k k8s
+```
+
+- `delete -k` sletter pods og volumes, men Minikube beholder databasefilerne. `rm -rf` sletter dem, så `schema.yaml` kører igen og `sold` starter på 0.
+- Port-forwards og tunnelen dør med pods'ene. Vent på `Running` og `1/1` (trin 2), start trin 3-5 igen, og brug den nye adresse fra trin 5. Importér dashboardet igen i Grafana (trin 4).
