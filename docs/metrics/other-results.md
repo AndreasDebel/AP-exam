@@ -152,3 +152,348 @@ Copy the step's p95 and error rate from k6's summary (the lines tagged `scenario
 | 1700         | 152.49   | 0.00           | 0.24            | 0.25                 |
 | 1800         | 475.93   | 0.00           | 0.24            | 0.25                 |
 | 1900         | 1060.00  | 0.00           | 0.21            | 0.25                 |
+
+## G. Scenario 1's setup with 0.25 CPU, 25 req/s steps (reads, 1600-1775)
+
+- **Purpose:** find the limit at a 25 req/s step size, in the range where F crossed 200 ms (between 1700 and 1800).
+- **Used as:** `1. Baseline (reads) - run 1` in `results.md` until it was replaced by I1-I3 (step size 50 instead of 25). J1 and J2 are the other two runs at 25 req/s.
+- **Date:** 2026-11-25, about 09:33:50-09:46:52
+- **Setup:** same as D, on a fresh Minikube (`minikube delete` + `start`). The pods had been running for about 9 minutes when the run started. Warm-up in `script.js` at 1600.
+- **Command:** `k6 run -e MODE=reads -e START=1600 -e STEP=25 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 25 req/s
+- **Screenshots:** `other-images/5-sc1-0.25cpu-full.png` (covers about 09:40-09:47, the last 4-5 steps)
+- **Notes:**
+  - 871,164 requests in total (warm-up included), 365 failed, all in the warm-up: `connectex: No connection could be made because the target machine actively refused it` on the tunnel's local port. 0 failed in the steps. `db:a` and `db:b` within 2 ms of each other at every step.
+  - `dropped_iterations`: 219 at 1600, 349 at 1625, 252 at 1650, 264 at 1675, 555 at 1700, 603 at 1725, 1050 at 1750, 20,996 at 1775.
+  - `vus_max` reached 1000.
+  - At 1775, k6 sent 85,505 requests in the step (about 1425 req/s, of 1775 planned).
+  - CPU: k6's `CPU per step` lines were not copied. Queried from Prometheus after the run with the same query as `script.js`, at step-end times estimated from the API's request counter (accurate to about ±15 s).
+  - Median latency: 38 ms at 1600, 59 ms at 1700, 69 ms at 1725, 76 ms at 1750, 582 ms at 1775.
+  - Slowest single request in a step: 1.73 s (at 1750).
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1600         | 83.20    | 0.00           | 0.23            | 0.22                 |
+| 1625         | 73.62    | 0.00           | 0.23            | 0.23                 |
+| 1650         | 79.91    | 0.00           | 0.21            | 0.25                 |
+| 1675         | 84.13    | 0.00           | 0.25            | 0.25                 |
+| 1700         | 176.09   | 0.00           | 0.22            | 0.21                 |
+| 1725         | 215.59   | 0.00           | 0.24            | 0.25                 |
+| 1750         | 414.25   | 0.00           | 0.22            | 0.23                 |
+| 1775         | 894.89   | 0.00           | 0.23            | 0.23                 |
+
+## H. Scenario 1's setup with 1500 VUs (reads, 1600-1775), 3 runs
+
+- **Purpose:** the 3 Baseline (reads) runs, with `preAllocatedVUs: 1500` and `maxVUs: 1500` in `script.js` (instead of 20 / 1000), so k6 would not drop iterations. Not usable: see Notes. `script.js` was set back to 20 / 1000 afterwards.
+- **Date:** 2026-11-25, run 1 10:12:33-10:25:40, run 2 10:25:40-10:38:46, run 3 10:38:46-10:51:47 (back to back)
+- **Setup:** same as G, same cluster (not restarted). The pods had been running for about 50 minutes at the start of run 1.
+- **Command:** `k6 run -e MODE=reads -e START=1600 -e STEP=25 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 25 req/s
+- **Screenshots:** none
+- **Notes:**
+  - About 27% of requests failed in every step of all 3 runs, from the first second of each run (about 248,000 of 906,000 per run). 0 `dropped_iterations` in every step.
+  - All failures were on the tunnel's local port: `connectex: No connection could be made because the target machine actively refused it` (113,661 in run 1) and `wsarecv: An existing connection was forcibly closed by the remote host` (134,565 in run 1).
+  - p95 was about 460-480 ms at every step in all 3 runs, failed requests included. p95 of the successful requests only, whole run: 45.03 / 43.97 / 46.60 ms.
+  - `vus_max` was 1500 from the start.
+  - Only the table for run 1 is shown; runs 2 and 3 were within 0.3 percentage points (error rate) and 21 ms (p95) of it at every step.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1600         | 458.10   | 27.29          | 0.24            | 0.24                 |
+| 1625         | 463.28   | 27.30          | 0.20            | 0.24                 |
+| 1650         | 472.60   | 27.53          | 0.23            | 0.24                 |
+| 1675         | 470.34   | 27.25          | 0.24            | 0.24                 |
+| 1700         | 468.10   | 27.30          | 0.23            | 0.25                 |
+| 1725         | 466.99   | 27.30          | 0.24            | 0.25                 |
+| 1750         | 460.23   | 27.40          | 0.24            | 0.25                 |
+| 1775         | 461.35   | 27.33          | 0.24            | 0.25                 |
+
+## I1. Scenario 1's setup with 0.25 CPU, 50 req/s steps (reads, 1500-1850)
+
+- **Used as:** `1. Baseline (reads) - run 1` in `results.md`.
+- **Purpose:** one of 3 runs at a 50 req/s step size (I1-I3), to see whether the limit varies less between runs than at 25 req/s (Baseline reads runs 1-3 in `results.md`).
+- **Date:** 2026-11-25, 11:36:33-11:49:41
+- **Setup:** same as G, same cluster (not restarted). `script.js` with `preAllocatedVUs: 20`, `maxVUs: 1000`. The pods had been running for about 2.2 hours. I1-I3 ran back to back.
+- **Command:** `k6 run -e MODE=reads -e START=1500 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 50 req/s
+- **Screenshots:** `images/1-baseline-reads/sc1-run1.png`
+- **Notes:**
+  - 882,412 requests, 0 failed. `db:a` and `db:b` within 1.5 ms of each other at every step.
+  - `dropped_iterations`: 295 at 1500, 388 at 1550, 264 at 1600, 308 at 1650, 344 at 1700, 360 at 1750, 906 at 1800, 7,756 at 1850. `vus_max` reached 1000.
+  - At 1850, k6 sent 103,244 requests in the step (about 1720 req/s, of 1850 planned).
+  - p95 stays over 200 ms from 1800.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1500         | 80.39    | 0.00           | 0.24            | 0.24                 |
+| 1550         | 100.80   | 0.00           | 0.25            | 0.25                 |
+| 1600         | 86.08    | 0.00           | 0.21            | 0.25                 |
+| 1650         | 87.51    | 0.00           | 0.25            | 0.25                 |
+| 1700         | 92.28    | 0.00           | 0.24            | 0.25                 |
+| 1750         | 139.77   | 0.00           | 0.21            | 0.25                 |
+| 1800         | 353.90   | 0.00           | 0.23            | 0.25                 |
+| 1850         | 741.75   | 0.00           | 0.22            | 0.25                 |
+
+## I2. Scenario 1's setup with 0.25 CPU, 50 req/s steps (reads, 1500-1850)
+
+- **Used as:** `1. Baseline (reads) - run 2` in `results.md`.
+- **Purpose:** one of 3 runs at a 50 req/s step size (I1-I3), to see whether the limit varies less between runs than at 25 req/s (Baseline reads runs 1-3 in `results.md`).
+- **Date:** 2026-11-25, 11:49:41-12:02:45
+- **Setup:** same as G, same cluster (not restarted). `script.js` with `preAllocatedVUs: 20`, `maxVUs: 1000`. The pods had been running for about 2.4 hours. I1-I3 ran back to back.
+- **Command:** `k6 run -e MODE=reads -e START=1500 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 50 req/s
+- **Screenshots:** `images/1-baseline-reads/sc1-run2.png`
+- **Notes:**
+  - 878,230 requests, 0 failed. `db:a` and `db:b` within 2.5 ms of each other at every step.
+  - `dropped_iterations`: 553 at 1500, 306 at 1550, 217 at 1600, 328 at 1650, 442 at 1700, 620 at 1750, 12,072 at 1800, 709 at 1850. `vus_max` reached 1000.
+  - At 1800, k6 sent 95,928 requests in the step (about 1600 req/s, of 1800 planned).
+  - p95 stays over 200 ms from 1750. It fell from 798 ms at 1800 to 252 ms at 1850.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1500         | 82.63    | 0.00           | 0.20            | 0.22                 |
+| 1550         | 75.74    | 0.00           | 0.24            | 0.25                 |
+| 1600         | 76.49    | 0.00           | 0.25            | 0.25                 |
+| 1650         | 101.03   | 0.00           | 0.25            | 0.25                 |
+| 1700         | 134.86   | 0.00           | 0.24            | 0.25                 |
+| 1750         | 245.17   | 0.00           | 0.23            | 0.25                 |
+| 1800         | 797.62   | 0.00           | 0.22            | 0.24                 |
+| 1850         | 251.99   | 0.00           | 0.21            | 0.24                 |
+
+## I3. Scenario 1's setup with 0.25 CPU, 50 req/s steps (reads, 1500-1850)
+
+- **Used as:** `1. Baseline (reads) - run 3` in `results.md`.
+- **Purpose:** one of 3 runs at a 50 req/s step size (I1-I3), to see whether the limit varies less between runs than at 25 req/s (Baseline reads runs 1-3 in `results.md`).
+- **Date:** 2026-11-25, 12:02:45-12:15:47
+- **Setup:** same as G, same cluster (not restarted). `script.js` with `preAllocatedVUs: 20`, `maxVUs: 1000`. The pods had been running for about 2.6 hours. I1-I3 ran back to back.
+- **Command:** `k6 run -e MODE=reads -e START=1500 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 50 req/s
+- **Screenshots:** `images/1-baseline-reads/sc1-run3.png`
+- **Notes:**
+  - 841,857 requests, 72 failed, all at 1750, in the step's first second (12:11:45): `connectex: No connection could be made because the target machine actively refused it` on the tunnel's local port. `db:a` and `db:b` within 1.5 ms of each other at every step.
+  - `dropped_iterations`: 297 at 1500, 486 at 1550, 257 at 1600, 257 at 1650, 329 at 1700, 18,161 at 1750, 922 at 1800, 30,992 at 1850. `vus_max` reached 1000.
+  - k6 sent about 1450 req/s at 1750 (86,840 requests) and about 1330 req/s at 1850 (80,009 requests).
+  - p95 stays over 200 ms from 1750. It fell from 827 ms at 1750 to 414 ms at 1800.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1500         | 62.84    | 0.00           | 0.25            | 0.20                 |
+| 1550         | 110.54   | 0.00           | 0.25            | 0.25                 |
+| 1600         | 88.35    | 0.00           | 0.24            | 0.25                 |
+| 1650         | 90.23    | 0.00           | 0.24            | 0.25                 |
+| 1700         | 112.36   | 0.00           | 0.25            | 0.25                 |
+| 1750         | 827.05   | 0.08           | 0.22            | 0.21                 |
+| 1800         | 413.72   | 0.00           | 0.22            | 0.25                 |
+| 1850         | 1010.00  | 0.00           | 0.21            | 0.21                 |
+
+## J1. Scenario 1's setup with 0.25 CPU, 25 req/s steps (reads, 1600-1775)
+
+- **Purpose:** runs 2 and 3 of the first Baseline (reads), at 25 req/s with G as run 1. Replaced by I1-I3 in `results.md`: the limit varied more between runs (±83 req/s) than the 25 req/s step size.
+- **Date:** 2026-11-25, 10:55:41-11:08:46
+- **Setup:** same as G, same cluster (not restarted).
+- **Command:** `k6 run -e MODE=reads -e START=1600 -e STEP=25 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 25 req/s
+- **Screenshots:** none
+- **Notes:**
+  - The pods had been running for about 1.5 hours.
+  - 140 failed requests, all in the first 2 s of the warm-up (tunnel refused the connection). 0 failed in the steps.
+  - `dropped_iterations`: 160 at 1600, 677 at 1625, 355 at 1650, 281 at 1675, 270 at 1700, 307 at 1725, 351 at 1750, 396 at 1775. `vus_max` reached 1000.
+  - p95 went over 200 ms at 1625 only, and was below 200 ms at every later step.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1600         | 73.67    | 0.00           | 0.24            | 0.25                 |
+| 1625         | 278.45   | 0.00           | 0.24            | 0.25                 |
+| 1650         | 103.13   | 0.00           | 0.24            | 0.25                 |
+| 1675         | 90.20    | 0.00           | 0.24            | 0.25                 |
+| 1700         | 96.32    | 0.00           | 0.25            | 0.25                 |
+| 1725         | 108.06   | 0.00           | 0.24            | 0.25                 |
+| 1750         | 113.03   | 0.00           | 0.25            | 0.25                 |
+| 1775         | 150.82   | 0.00           | 0.24            | 0.25                 |
+
+## J2. Scenario 1's setup with 0.25 CPU, 25 req/s steps (reads, 1600-1775)
+
+- **Purpose:** runs 2 and 3 of the first Baseline (reads), at 25 req/s with G as run 1. Replaced by I1-I3 in `results.md`: the limit varied more between runs (±83 req/s) than the 25 req/s step size.
+- **Date:** 2026-11-25, 11:08:46-11:21:48
+- **Setup:** same as G, same cluster (not restarted).
+- **Command:** `k6 run -e MODE=reads -e START=1600 -e STEP=25 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 25 req/s
+- **Screenshots:** none
+- **Notes:**
+  - Ran straight after J1. The pods had been running for about 1.7 hours.
+  - 62 failed requests, all at 1750, within one second at the start of the step (11:19:17; tunnel refused the connection).
+  - `dropped_iterations`: 577 at 1600, 453 at 1625, 293 at 1650, 413 at 1675, 421 at 1700, 313 at 1725, 347 at 1750, 15,693 at 1775. `vus_max` reached 1000.
+  - At 1775, k6 sent 90,807 requests in the step (about 1510 req/s, of 1775 planned).
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 1600         | 101.89   | 0.00           | 0.24            | 0.25                 |
+| 1625         | 96.66    | 0.00           | 0.24            | 0.25                 |
+| 1650         | 88.49    | 0.00           | 0.24            | 0.25                 |
+| 1675         | 101.21   | 0.00           | 0.25            | 0.25                 |
+| 1700         | 109.03   | 0.00           | 0.24            | 0.21                 |
+| 1725         | 101.32   | 0.00           | 0.20            | 0.25                 |
+| 1750         | 124.80   | 0.05           | 0.24            | 0.25                 |
+| 1775         | 835.23   | 0.00           | 0.22            | 0.25                 |
+
+## K. Scenario 2's setup, coarse probe (writes, 100-1000)
+
+- **Used as:** probe only, to find where the writes limit lies before choosing a step size for `2. Baseline (writes)`.
+- **Date:** 2026-11-25, 12:33:21-12:49:27
+- **Setup:** same cluster as I1-I3 (not restarted, databases not reset; only reads had run before, so `sold` started at 0). `script.js` unchanged (`preAllocatedVUs: 20`, `maxVUs: 1000`).
+- **Command:** `k6 run -e MODE=writes -e START=100 -e STEP=100 -e STEPS=10 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 100 req/s
+- **Screenshots:** none
+- **Notes:**
+  - 206,015 requests in total. Errors came from the API: 3,280 `NpgsqlException: The connection pool has been exhausted ... 'Max Pool Size' (currently 30) or 'Timeout' (currently 3 seconds)` in the API log. A buy holds its connection for the whole transaction (row lock), so at high rates the 30 connections are all busy and the rest wait up to 3 s, then fail. 3 further requests failed with `EOF` (tunnel) at 400-500.
+  - `dropped_iterations`: 0 at 100, 340 at 200, 555 at 300, 269 at 400, 428 at 500, 11,206 at 600, 18,851 at 700, 25,578 at 800, 33,691 at 900, 39,054 at 1000. `vus_max` reached 1000 from 600 on, so from 600 k6 did not send the planned rate.
+  - p95 is not monotonic: 1.59 s at 200 and 1.7 s at 300, but 485 ms at 400. Only 100 is under 200 ms. With 100 req/s steps the limit is somewhere between 100 and 200, too coarse to place it.
+  - Errors start at 600 and stay above 0 from there.
+  - CPU from k6's `CPU per step` lines. Neither pod is clearly at its 0.25 cap at every step, which fits a pool (waiting) limit rather than a CPU limit.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 100          | 26.23    | 0.00           | 0.19            | 0.13                 |
+| 200          | 1590.00  | 0.00           | 0.16            | 0.24                 |
+| 300          | 1700.00  | 0.00           | 0.15            | 0.20                 |
+| 400          | 484.85   | 0.00           | 0.23            | 0.22                 |
+| 500          | 804.63   | 0.00           | 0.22            | 0.25                 |
+| 600          | 4420.00  | 11.82          | 0.20            | 0.20                 |
+| 700          | 3690.00  | 18.86          | 0.21            | 0.20                 |
+| 800          | 3640.00  | 22.96          | 0.19            | 0.20                 |
+| 900          | 4250.00  | 35.78          | 0.21            | 0.18                 |
+| 1000         | 3660.00  | 24.94          | 0.19            | 0.21                 |
+
+## L. Scenario 2's setup, 25 req/s steps (writes, 25-275)
+
+- **Used as:** meant as `2. Baseline (writes) - run 1`, but p95 never crossed 200 ms, so the run was stopped after run 1 (runs 2-3 not started).
+- **Date:** 2026-11-25, 12:56:37-13:14:08
+- **Setup:** same cluster as K (not restarted, databases not reset after K: `sold` started at about 5,000 per section of 1,000,000). `script.js` unchanged.
+- **Command:** `k6 run -e MODE=writes -e START=25 -e STEP=25 -e STEPS=11 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 25 req/s
+- **Screenshots:** none
+- **Notes:**
+  - 100,359 requests, 0 failed, 0 warnings. `vus_max` reached 170.
+  - `dropped_iterations`: 36 at 175, 15 at 225, 104 at 250, 18 at 275; 0 elsewhere.
+  - p95 stays under 70 ms all the way to 275. So K's 1.6 s at 200-300 was not the writes limit. K warmed up at only 100 req/s, so K's 200 step was probably the API's connection pool still growing (pool exhausted errors appeared only in K), not saturation.
+  - CPU from k6's `CPU per step` lines. Neither pod reached its 0.25 cap; the API came closest (0.24 at 225).
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 25           | 41.61    | 0.00           | 0.05            | 0.03                 |
+| 50           | 23.25    | 0.00           | 0.09            | 0.05                 |
+| 75           | 18.03    | 0.00           | 0.12            | 0.07                 |
+| 100          | 12.67    | 0.00           | 0.15            | 0.08                 |
+| 125          | 10.62    | 0.00           | 0.18            | 0.10                 |
+| 150          | 9.40     | 0.00           | 0.20            | 0.12                 |
+| 175          | 16.60    | 0.00           | 0.19            | 0.14                 |
+| 200          | 16.82    | 0.00           | 0.23            | 0.15                 |
+| 225          | 27.69    | 0.00           | 0.24            | 0.16                 |
+| 250          | 59.86    | 0.00           | 0.18            | 0.17                 |
+| 275          | 66.89    | 0.00           | 0.17            | 0.15                 |
+
+## M. Scenario 2's setup, 50 req/s steps (writes, 250-600)
+
+- **Used as:** was `2. Baseline (writes) - run 1` in `results.md`, until N1 and N2 showed the runs drifting. Started as a probe, to place the writes limit after L stayed under 200 ms up to 275.
+- **Date:** 2026-11-25, 13:16:44-13:29:56
+- **Setup:** same cluster as K and L (not restarted, databases not reset). `script.js` unchanged.
+- **Command:** `k6 run -e MODE=writes -e START=250 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`
+- **Step size:** 50 req/s
+- **Screenshots:** none
+- **Notes:**
+  - 202,669 requests. Failures only at 600 (0.23%): 63 `connection pool has been exhausted` in the API log, plus 1 `EOF` (tunnel).
+  - `dropped_iterations`: 89 at 250, 51 at 300, 99 at 350, 501 at 400, 232 at 450, 1,399 at 500, 4,338 at 550, 9,551 at 600. `vus_max` reached 1000 from 500 on.
+  - p95 stays over 200 ms from 350. Postgres is at or near its 0.25 cap from 350 on, so here, unlike K, the limit is Postgres CPU.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 250          | 122.67   | 0.00           | 0.18            | 0.16                 |
+| 300          | 93.55    | 0.00           | 0.19            | 0.22                 |
+| 350          | 243.88   | 0.00           | 0.20            | 0.24                 |
+| 400          | 1090.00  | 0.00           | 0.17            | 0.25                 |
+| 450          | 391.68   | 0.00           | 0.24            | 0.24                 |
+| 500          | 2190.00  | 0.00           | 0.21            | 0.25                 |
+| 550          | 2280.00  | 0.00           | 0.21            | 0.25                 |
+| 600          | 2850.00  | 0.23           | 0.20            | 0.25                 |
+
+## N1. Scenario 2's setup, repeat of M (writes, 250-600)
+
+- **Used as:** was `2. Baseline (writes) - run 2` in `results.md`. Dropped because N1 and N2 got slower than M: the databases were not reset between runs, so the 40 load-test rows had built up dead row versions (old copies Postgres keeps after `UPDATE`). Disproved later: writes run 1 in `results.md` ran on fresh databases and was just as slow, so M was the outlier.
+- **Date:** 2026-11-25, 14:11:49-14:24:53
+- **Setup:** same cluster as K, L and M (not restarted, databases not reset since before K). N1 and N2 ran back to back.
+- **Command:** same as M.
+- **Step size:** 50 req/s
+- **Screenshots:** none
+- **Notes:**
+  - 192,095 requests, 4,562 failed (2.37%).
+  - `dropped_iterations`: 89 at 250, 686 at 300, 196 at 350, 534 at 400, 184 at 450, 2,593 at 500, 8,356 at 550, 13,342 at 600. `vus_max` reached 1000.
+  - p95 is over 200 ms at every step, from 250 (the first step) on, so the limit is at or below 250. Errors: one blip at 400 (0.02%), then over 0 from 500 on.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 250          | 274.66   | 0.00           | 0.21            | 0.15                 |
+| 300          | 2280.00  | 0.00           | 0.20            | 0.23                 |
+| 350          | 249.04   | 0.00           | 0.23            | 0.21                 |
+| 400          | 1180.00  | 0.02           | 0.22            | 0.24                 |
+| 450          | 276.50   | 0.00           | 0.23            | 0.25                 |
+| 500          | 2490.00  | 1.51           | 0.21            | 0.25                 |
+| 550          | 2920.00  | 0.20           | 0.20            | 0.25                 |
+| 600          | 3300.00  | 8.89           | 0.19            | 0.24                 |
+
+## N2. Scenario 2's setup, repeat of M (writes, 250-600)
+
+- **Used as:** was `2. Baseline (writes) - run 3` in `results.md`. Dropped because N1 and N2 got slower than M: the databases were not reset between runs, so the 40 load-test rows had built up dead row versions (old copies Postgres keeps after `UPDATE`). Disproved later: writes run 1 in `results.md` ran on fresh databases and was just as slow, so M was the outlier.
+- **Date:** 2026-11-25, 14:24:53-14:37:59
+- **Setup:** same cluster as K, L and M (not restarted, databases not reset since before K). N1 and N2 ran back to back.
+- **Command:** same as M.
+- **Step size:** 50 req/s
+- **Screenshots:** none
+- **Notes:**
+  - 199,330 requests, 2,441 failed (1.22%).
+  - `dropped_iterations`: 211 at 250, 583 at 300, 192 at 350, 507 at 400, 614 at 450, 823 at 500, 5,411 at 550, 10,605 at 600. `vus_max` reached 1000.
+  - p95 is over 200 ms at every step, from 250 (the first step) on, so the limit is at or below 250. Errors over 0 from 500 on.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 250          | 610.37   | 0.00           | 0.18            | 0.21                 |
+| 300          | 1790.00  | 0.00           | 0.20            | 0.24                 |
+| 350          | 420.43   | 0.00           | 0.22            | 0.22                 |
+| 400          | 1280.00  | 0.00           | 0.22            | 0.25                 |
+| 450          | 1340.00  | 0.00           | 0.21            | 0.25                 |
+| 500          | 1660.00  | 1.01           | 0.21            | 0.25                 |
+| 550          | 3010.00  | 3.07           | 0.19            | 0.25                 |
+| 600          | 3200.00  | 5.09           | 0.20            | 0.25                 |
+
+## O. Scenario 2's setup, M repeated on fresh databases (writes, 250-600)
+
+- **Used as:** was `2. Baseline (writes) - run 1` in `results.md`, until the runs from 150 (P1-P3) replaced it.
+- **Date:** 2026-11-25, 15:50:03-16:03:11
+- **Setup:** full reset (README step 8) just before, `sold` = 0.
+- **Command:** same as M.
+- **Step size:** 50 req/s
+- **Screenshots:** none
+- **Notes:**
+  - 185,015 requests, 7,920 failed (4.28%). API log: 2,863 `connection pool has been exhausted`. 7 `EOF` (tunnel).
+  - `dropped_iterations`: 103 at 250, 680 at 300, 210 at 350, 548 at 400, 1,519 at 450, 2,417 at 500, 9,038 at 550, 13,311 at 600. `vus_max` reached 1000.
+  - p95 is over 200 ms at every step, from 250 (the first step) on, so the limit is at or below 250.
+  - As slow as N1 and N2, although the databases were fresh. So dead rows did not cause the drift; M is the outlier.
+  - CPU from k6's `CPU per step` lines.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 250          | 280.44   | 0.00           | 0.19            | 0.18                 |
+| 300          | 2280.00  | 0.00           | 0.19            | 0.24                 |
+| 350          | 236.67   | 0.00           | 0.23            | 0.22                 |
+| 400          | 1280.00  | 0.02           | 0.22            | 0.25                 |
+| 450          | 2520.00  | 1.71           | 0.21            | 0.25                 |
+| 500          | 2470.00  | 0.00           | 0.21            | 0.25                 |
+| 550          | 2990.00  | 1.35           | 0.20            | 0.25                 |
+| 600          | 3460.00  | 5.36           | 0.20            | 0.24                 |

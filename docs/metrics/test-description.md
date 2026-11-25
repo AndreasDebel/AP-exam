@@ -33,7 +33,7 @@ Each row changes one thing from the row it is compared with. Everything else sta
 
 Speed rows (1-6, all except 7. Oversell check):
 
-- **p95 > 200 ms at:** the first load step (req/s) where p95 goes over 200 ms.
+- **p95 > 200 ms at:** the first load step (req/s) from which p95 stays over 200 ms: that step and every later step in the run are over. A single step over 200 ms followed by steps under it is a blip, not the limit; write it in the run's notes.
 - **errors > 1% at:** the first load step (req/s) where the error rate goes over 1%.
 - **step size:** the step increment used, so the reader can see how precise the two limits are (a limit of 300 with step 50 means "between 250 and 300").
 

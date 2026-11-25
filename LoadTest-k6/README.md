@@ -65,12 +65,27 @@ Den skriver fx `http://127.0.0.1:61029`. Adressen virker kun, så længe termina
 
 Én kørsel = 1 minuts warm-up ved første trins fart (måles ikke) + 30 s pause, og så alle trin: hvert trin er 1 minut ved fast fart, så 30 s pause, så næste trin med højere fart.
 
-Læsninger: 8 trin, 50, 100, 150 ... 400 requests pr. sekund (1,5 min warm-up + 8 × 1,5 min = 13,5 minutter):
+### Læsninger
+
+8 trin, 50, 100, 150 ... 400 requests pr. sekund (1,5 min warm-up + 8 × 1,5 min = 13,5 minutter):
 ```
 k6 run -e MODE=reads -e START=50 -e STEP=50 -e STEPS=8 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
 ```
 
-Køb: samme kommando med `MODE=writes`.
+### Køb
+
+Samme k6-kommando med `MODE=writes`.
+
+Nulstil databasen før hver writes-kørsel med kommandoen herunder. Ved 2 databaser: kør den også med `postgres-b-0`.
+```
+kubectl exec -n booking postgres-a-0 -- psql -U postgres -d booking -c "UPDATE section SET sold=0 WHERE id BETWEEN 101 AND 140;" -c "VACUUM FULL section;"
+```
+
+- `UPDATE` sætter `sold` tilbage til 0.
+- Hvert køb er en `UPDATE`, og Postgres gemmer den gamle version af rækken. Efter tusindvis af køb på de samme 40 rækker bliver tabellen langsommere. `VACUUM FULL` skriver tabellen på ny uden de gamle versioner.
+- Alt andet kører videre: port-forwards, tunnel og Grafana.
+
+### Skriv resultaterne ind
 
 k6's opsummering har en linje pr. trin, opkaldt efter farten, fx `{ scenario:rate_150 }`. Skriv for hvert trin ind i `docs/metrics/results.md`:
 - `http_req_duration { scenario:rate_150 } ... p(95)=`: svartiden.
@@ -110,6 +125,8 @@ Sæt yaml-filerne tilbage til demo-opsætningen, før I committer.
 
 Kun nødvendigt efter køb (`MODE=writes`), så gamle `sold`-tal ikke påvirker næste kørsel. Læsninger ændrer ikke data, så mellem to reads-kørsler kan du springe det over.
 
+Mellem to writes-kørsler er nulstillingen i trin 6 nok. Den fulde nulstilling her bruges, når alt skal være helt frisk, fx før et nyt scenarie.
+
 Tag dine Grafana-screenshots først: nulstillingen sletter også Prometheus' data og Grafanas dashboard.
 
 ```
@@ -118,9 +135,12 @@ kubectl delete -k k8s
 ```
 minikube ssh -- sudo rm -rf /tmp/hostpath-provisioner/booking
 ```
+Tjek, at det virkede: `booking` må ikke længere stå på listen.
 ```
-kubectl apply -k k8s
+minikube ssh -- ls /tmp/hostpath-provisioner
 ```
 
+Kør derefter trin 2-5 igen: start systemet, start port-forwards og tunnel igen, importér dashboardet i Grafana igen, og brug den nye adresse fra trin 5 i k6-kommandoen.
+
 - `delete -k` sletter pods og volumes, men Minikube beholder databasefilerne. `rm -rf` sletter dem, så `schema.yaml` kører igen og `sold` starter på 0.
-- Port-forwards og tunnelen dør med pods'ene. Vent på `Running` og `1/1` (trin 2), start trin 3-5 igen, og brug den nye adresse fra trin 5. Importér dashboardet igen i Grafana (trin 4).
+- Port-forwards og tunnelen dør med pods'ene, derfor trin 3-5 igen.
