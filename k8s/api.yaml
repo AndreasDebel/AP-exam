@@ -5,7 +5,7 @@ metadata:
   name: api
   namespace: booking
 spec:
-  replicas: 3 # X-scaling is this number.
+  replicas: 1 # X-scaling is this number.
   selector:
     matchLabels:
       app: api
@@ -46,7 +46,7 @@ spec:
               value: redis:6379
             # The cache switch. Issue #10 flips it to "false" to measure the API without Redis.
             - name: CacheEnabled
-              value: "true" # Quoted: env values must be strings.
+              value: "false" # Quoted: env values must be strings.
             # Overrides "Sections" in api/appsettings.json (localhost). The API's router reads these.
             # Z-scaling (#11): sections 1-2 live in database a, sections 3-4 in database b.
             # Moving a section = changing its "key" below and running "kubectl apply -k k8s" (the API pods restart).
