@@ -16,6 +16,22 @@ const stepCount = Number(__ENV.STEPS);    // antal trin, fx 8
 // thresholds below use to print one line per step.
 const scenarios = {};
 const thresholds = {};
+
+// Warm-up: 1 minute at the first step's rate before any step is measured. A freshly started API spends its
+// first seconds compiling code (JIT) and opening database connections, which made the first step's p95 too high.
+// It gets no threshold lines, so it shows up in Grafana but not as a line of its own in k6's summary.
+// Its requests still count in k6's overall totals at the bottom; the per-step lines are what goes in the tables.
+scenarios['warmup'] = {
+    executor: 'constant-arrival-rate',
+    rate: start,
+    timeUnit: '1s',
+    duration: '1m',
+    startTime: '0s',
+    preAllocatedVUs: 20,
+    maxVUs: 1000,
+};
+const warmupLength = 90;   // seconds: 60 s warm-up + 30 s pause. Every step starts this much later.
+
 for (let i = 0; i < stepCount; i++) {
     const rate = start + i * stepSize;
     const name = `rate_${rate}`;
@@ -24,7 +40,7 @@ for (let i = 0; i < stepCount; i++) {
         rate: rate,
         timeUnit: '1s',
         duration: '1m',
-        startTime: `${i * 90}s`,             // 60 s trin + 30 s pause
+        startTime: `${warmupLength + i * 90}s`,   // efter warm-up, så 60 s trin + 30 s pause
         preAllocatedVUs: 20,
         maxVUs: 1000,   // mange, så requests der hænger (død database) ikke løber tør for VUs
     };
@@ -84,8 +100,8 @@ export function teardown(data) {
     console.log('CPU per step (busiest pod in cores, 0.25 = its limit):');
     for (let i = 0; i < stepCount; i++) {
         const rate = start + i * stepSize;
-        // Step i ends 60 s after it starts, and steps start 90 s apart (see startTime above).
-        const stepEnd = data.startedAt + i * 90 + 60;
+        // Step i ends 60 s after it starts; steps start after the warm-up, 90 s apart (see startTime above).
+        const stepEnd = data.startedAt + warmupLength + i * 90 + 60;
         const api = busiestPodCpu('api-.*', stepEnd);
         const postgres = busiestPodCpu('postgres-.*', stepEnd);
         console.log(`rate_${rate}: API ${api}  Postgres ${postgres}`);

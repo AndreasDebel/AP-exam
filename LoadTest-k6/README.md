@@ -63,9 +63,9 @@ Den skriver fx `http://127.0.0.1:61029`. Adressen virker kun, så længe termina
 
 ## 6. Kør k6 (ny terminal)
 
-Én kørsel = alle trin: hvert trin er 1 minut ved fast fart, så 30 s pause, så næste trin med højere fart.
+Én kørsel = 1 minuts warm-up ved første trins fart (måles ikke) + 30 s pause, og så alle trin: hvert trin er 1 minut ved fast fart, så 30 s pause, så næste trin med højere fart.
 
-Læsninger: 8 trin, 50, 100, 150 ... 400 requests pr. sekund (8 × 1,5 min = 12 minutter):
+Læsninger: 8 trin, 50, 100, 150 ... 400 requests pr. sekund (1,5 min warm-up + 8 × 1,5 min = 13,5 minutter):
 ```
 k6 run -e MODE=reads -e START=50 -e STEP=50 -e STEPS=8 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
 ```

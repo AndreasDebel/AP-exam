@@ -43,7 +43,7 @@ An **error** is any answer that is not 2xx or 409. Sections have so many places 
 
 ## Load profile: all steps in one k6 run
 
-One k6 run holds every step of a scenario run: 1 minute at a fixed rate per step (k6 `constant-arrival-rate`), then a 30 s pause, then the next step at a higher rate. `START`, `STEP` and `STEPS` set the first rate, the increment and the number of steps. k6's summary prints p95, error rate and `dropped_iterations` for each step separately (named after its rate, e.g. `scenario:rate_150`), and Grafana shows all the steps on one graph. Commands are in `LoadTest-k6/README.md`.
+One k6 run starts with 1 minute of warm-up at the first step's rate (not measured) and a 30 s pause, then holds every step of a scenario run: 1 minute at a fixed rate per step (k6 `constant-arrival-rate`), then a 30 s pause, then the next step at a higher rate. `START`, `STEP` and `STEPS` set the first rate, the increment and the number of steps. k6's summary prints p95, error rate and `dropped_iterations` for each step separately (named after its rate, e.g. `scenario:rate_150`), and Grafana shows all the steps on one graph. Commands are in `LoadTest-k6/README.md`.
 
 - **Step size:** decided during the Baseline runs, one for reads and one for writes, then reused unchanged for every later row of the same load type. Rows compared with each other must share a step size, or a difference may only be precision. Write it in the cell.
 - **Start:** free per row. A row expected to hold more load may start higher; only the step size must match.
@@ -90,7 +90,7 @@ About 10 runs of 5-8 steps of 1.5 minutes (1 minute of load + 30 s pause), plus 
 - **Tunnel:** k6 reaches the API through `minikube service --url`, which carries all traffic and may become the bottleneck. It is the same for every row, so rows can still be compared. If CPU per pod shows nothing at its limit while p95 climbs, the tunnel or k6 is the likely cause.
 - **One machine:** k6, the cluster, Prometheus and Grafana share the laptop's CPU and memory. The CPU limits keep the pods apart, but not k6.
 - **Row locks:** every buy locks its section's row until it is done. With 40 sections this is spread out, but a real sale where everyone wants the same section would queue on that one row, and more databases would not help. That is an argument for how we would scale further (more, smaller sections).
-- **Warm-up:** each step's p95 covers the whole minute, including the first seconds while the system settles.
+- **Warm-up:** each run starts with 1 unmeasured minute at the first step's rate, so freshly started pods (JIT, new database connections) don't inflate the first step's p95. Within each step, p95 still covers the whole minute, including the first seconds at the new rate.
 - **Run-to-run variation:** only Baseline is repeated; other rows rely on its spread.
 - **Leftover data:** reset the databases between runs.
 
