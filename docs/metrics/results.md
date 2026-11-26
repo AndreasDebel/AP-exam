@@ -189,20 +189,28 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
 
 ## 3. X-scaling the API (reads) - run 1
 
-- **Date:**
-- **Step size:** ___ req/s
+- **Date:** 2026-11-26, 13:54:01-14:07:03
+- **Step size:** 50 req/s
 - **Notes:**
+  - Command: `k6 run -e MODE=reads -e START=1500 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`, `script.js` with `preAllocatedVUs: 20`, `maxVUs: 1000`, as in Scenario 1.
+  - Setup: 3 API (`replicas: 3`), 1 Postgres (`b`'s `Host` in `db-credentials.yaml` = `postgres-a-0.postgres-a`, so every section uses database a), Redis off (`CacheEnabled` = `false`).
+  - 873,635 requests, 106 failed (0.01%). All 106 at 14:00:01, the start of the 1650 step: `connection refused` on the tunnel port (`127.0.0.1:62897`), so they never reached the cluster.
+  - `db:a` and `db:b` within 4 ms of each other at every step.
+  - `dropped_iterations`: 180 at 1500, 430 at 1550, 494 at 1600, 278 at 1650, 365 at 1700, 632 at 1750, 611 at 1800, 14,830 at 1850. `vus_max` reached 1000 (in the warm-up and at 1850).
+  - p95 over 200 ms at 1550 and 1600, under it at 1650 and 1700, over it again from 1750.
+  - CPU from k6's `CPU per step` lines. CPU API is the busiest of the 3 API pods.
+  - Screenshot: `images/3-x-scaling-api/sc3.png`.
 
 | Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
 |--------------|----------|----------------|-----------------|----------------------|
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
+| 1500         | 85.27    | 0.00           | 0.20            | 0.25                 |
+| 1550         | 214.51   | 0.00           | 0.20            | 0.25                 |
+| 1600         | 225.60   | 0.00           | 0.18            | 0.25                 |
+| 1650         | 151.88   | 0.10           | 0.19            | 0.20                 |
+| 1700         | 179.12   | 0.00           | 0.24            | 0.22                 |
+| 1750         | 216.84   | 0.00           | 0.18            | 0.25                 |
+| 1800         | 239.19   | 0.00           | 0.17            | 0.25                 |
+| 1850         | 816.38   | 0.00           | 0.18            | 0.25                 |
 
 ## 4. Z-scaling the DB (writes) - run 1
 
@@ -234,20 +242,28 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
 
 ## 5. Redis cache (reads) - run 1
 
-- **Date:**
-- **Step size:** ___ req/s
+- **Date:** 2026-11-26, 14:18:11-14:28:12
+- **Step size:** 500 req/s
 - **Notes:**
+  - Command: `k6 run -e MODE=reads -e START=1500 -e STEP=500 -e STEPS=6 -e BASE_URL=<url> LoadTest-k6/script.js`, `script.js` with `preAllocatedVUs: 20`, `maxVUs: 1000`, as in Scenario 1.
+  - Setup: 1 API (`replicas: 1`), 1 Postgres (`b`'s `Host` in `db-credentials.yaml` = `postgres-a-0.postgres-a`), Redis on (`CacheEnabled` = `"true"` in `k8s/api.yaml`, 2 s TTL in `api/Program.cs`).
+  - Step size 500 instead of Scenario 1's 50: a coarse run to find where p95 rises; it is used as the result.
+  - 1,070,102 requests, 861 failed (0.08%). All 861 are `connection refused` on the tunnel port (`127.0.0.1:62897`), in bursts at 14:22:41-42 (start of 2500), 14:24:11 (start of 3000), 14:25:41-42 (start of 3500) and 14:26:30.
+  - p95 never over 200 ms (`> 4000`); highest 50.91 ms at 3500. Errors never over 1% (`> 4000`).
+  - `dropped_iterations`: 278 at 1500, 272 at 2000, 714 at 2500, 499 at 3000, 752 at 3500, 6,267 at 4000. `vus_max` reached 1000 (at 4000).
+  - Whole run: `http_req_duration` avg 21.78 ms, median 12.96 ms, max 2.13 s.
+  - A second coarse run, 4000-8000 with `maxVUs: 3000`, is in `other-results/sc5-other-results.md`.
+  - CPU from k6's `CPU per step` lines.
+  - Screenshot: `images/5-redis-cache/sc5.png`.
 
 | Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
 |--------------|----------|----------------|-----------------|----------------------|
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
-|              |          |                |                 |                      |
+| 1500         | 27.45    | 0.00           | 0.21            | 0.01                 |
+| 2000         | 46.26    | 0.00           | 0.24            | 0.01                 |
+| 2500         | 45.99    | 0.06           | 0.25            | 0.01                 |
+| 3000         | 31.96    | 0.03           | 0.20            | 0.01                 |
+| 3500         | 50.91    | 0.33           | 0.25            | 0.01                 |
+| 4000         | 49.59    | 0.00           | 0.25            | 0.02                 |
 
 ## 6. Fault isolation (writes) - run 1
 
@@ -320,3 +336,30 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
 | 400          | 11.40    | 0.00           | 142     | 398                 | 0.17            | 0.11                 |
 | 450          | 5.30     | 0.00           | 539     | 441                 | 0.18            | 0.12                 |
 | 500          | 5.31     | 0.00           | 0       | 500                 | 0.19            | 0.13                 |
+
+## 9. X-scaling + Redis (reads) - run 1
+
+- **Date:** 2026-11-26, 14:52:25-15:03:57
+- **Step size:** 1000 req/s
+- **Notes:**
+  - Command: `k6 run -e MODE=reads -e START=2000 -e STEP=1000 -e STEPS=7 -e BASE_URL=<url> LoadTest-k6/script.js`, `script.js` with `preAllocatedVUs: 20`, `maxVUs: 1000`, as in Scenario 1 and 5.
+  - Setup: 3 API (`replicas: 3`), 1 Postgres (`b`'s `Host` in `db-credentials.yaml` = `postgres-a-0.postgres-a`), Redis on (`CacheEnabled` = `"true"`, 2 s TTL). Scenario 5's setup plus 2 API copies.
+  - Step size 1000: a coarse run, used as the result.
+  - Grafana time ranges: warm-up 14:52:25-14:53:25, 2000 14:53:55-14:54:55, 3000 14:55:25-14:56:25, 4000 14:56:55-14:57:55, 5000 14:58:25-14:59:25, 6000 14:59:55-15:00:55, 7000 15:01:25-15:02:25, 8000 15:02:55-15:03:55.
+  - 2,212,557 requests, 1,335 failed (0.06%). All 1,335 are `connection refused` on the tunnel port (`127.0.0.1:62897`): 365 at 14:58 and 970 at 14:59.
+  - p95 never over 200 ms (`> 8000`); highest 27.83 ms at 8000. Errors never over 1% (`> 8000`).
+  - `dropped_iterations`: 183 at 2000, 302 at 3000, 495 at 4000, 1,114 at 5000, 1,192 at 6000, 1,594 at 7000, 2,030 at 8000. `vus_max` reached 1000.
+  - Whole run: `http_req_duration` avg 14.77 ms, median 14.65 ms, max 1.73 s.
+  - 0 API pod restarts after the run.
+  - CPU from k6's `CPU per step` lines. CPU API is the busiest of the 3 API pods.
+  - Screenshot: `images/9-x-scaling-redis/sc9.png`.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|-----------------|----------------------|
+| 2000         | 8.80     | 0.00           | 0.20            | 0.01                 |
+| 3000         | 15.41    | 0.00           | 0.24            | 0.01                 |
+| 4000         | 18.60    | 0.00           | 0.22            | 0.02                 |
+| 5000         | 19.27    | 0.12           | 0.20            | 0.01                 |
+| 6000         | 23.10    | 0.27           | 0.20            | 0.01                 |
+| 7000         | 26.50    | 0.00           | 0.22            | 0.01                 |
+| 8000         | 27.83    | 0.00           | 0.22            | 0.01                 |

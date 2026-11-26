@@ -20,6 +20,7 @@ Each row changes one thing from the row it is compared with. Everything else sta
 | 6   | Fault isolation   | 8's setup, `postgres-b` stopped         | writes | 8. X+Z scaling       |
 | 7   | Oversell check    | 8's setup, low section capacity         | writes | - (pass/fail)        |
 | 8   | X+Z scaling       | 3 API · 2 Postgres · Redis off          | writes | 4. Z-scaling the DB  |
+| 9   | X-scaling + Redis | 3 API · 1 Postgres · Redis on (2 s TTL) | reads  | 5. Redis cache       |
 
 - **Reads** = `GET /sections/{id}`. **Writes** = `POST /sections/{id}/buy`. Never mixed in one run, so it is clear which one hits the limit.
 - **How to switch setup:**
@@ -28,6 +29,7 @@ Each row changes one thing from the row it is compared with. Everything else sta
   - 1 or 2 Postgres: in `k8s/db-credentials.yaml`, point `b`'s `Host` at `postgres-a-0.postgres-a` for 1 Postgres. Then every section uses database a.
   - Run `kubectl apply -k k8s` after each change.
 - **8. X+Z scaling** was added after 4: there the API, not Postgres, sat at its CPU limit. 8 keeps 4's setup and load test unchanged and adds 2 API copies, to see whether the API was what held 4 back.
+- **9. X-scaling + Redis** was added after 5: there the API sat at its CPU limit while Postgres used 0.01 cores. 9 keeps 5's setup and load test and adds 2 API copies, to see whether the API was what held 5 back. Coarse run (2000-8000, step 1000), as 5's was coarse (1500-4000, step 500).
 - **6. Fault isolation** asks: when database b dies, do buyers on database a notice? It uses 8's setup (3 API copies), so the API has room to spare and only the dead database can explain a change on a. Same steps as 8 (150-500, step 50), but k6 runs with `SPLIT=yes`:
   - Each step is two k6 scenarios: `rate_<n>_a` buys in sections 101-120 (database a) and `rate_<n>_b` in 121-140 (database b), each at half the step's rate with its own 15 VUs (instead of 30 shared).
   - Why: with shared VUs, buys to b that hang would use up the VUs, and a would get fewer buys through because of k6, not the system. Split, a and b share only the API, which is what the test is about.
@@ -39,7 +41,7 @@ Each row changes one thing from the row it is compared with. Everything else sta
 
 ## What each cell records
 
-Speed rows (1-6, all except 7. Oversell check):
+Speed rows (all except 7. Oversell check):
 
 - **p95 > 200 ms at:** the first load step (req/s) from which p95 stays over 200 ms: that step and every later step in the run are over. A single step over 200 ms followed by steps under it is a blip, not the limit; write it in the run's notes.
 - **errors > 1% at:** the first load step (req/s) where the error rate goes over 1%.

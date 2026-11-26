@@ -79,7 +79,7 @@ for (let i = 0; i < stepCount; i++) {
         duration: '1m',
         startTime: `${warmupLength + i * 90}s`,   // efter warm-up, så 60 s trin + 30 s pause
         preAllocatedVUs: 30,
-        maxVUs: 30,   // writes: API'ens connection pool (test-description.md, VUs)
+        maxVUs: 30,   // reads: 20/1000 (Scenario 1, 3, 5). writes: 30/30, API'ens connection pool (test-description.md, VUs)
     };
 
     // Ikke pass/fail-grænser (">= 0" er altid sandt). Linjerne får bare k6 til at skrive tallene
