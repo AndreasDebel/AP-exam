@@ -85,6 +85,17 @@ kubectl exec -n booking postgres-a-0 -- psql -U postgres -d booking -c "UPDATE s
 - Hvert køb er en `UPDATE`, og Postgres gemmer den gamle version af rækken. Efter tusindvis af køb på de samme 40 rækker bliver tabellen langsommere. `VACUUM FULL` skriver tabellen på ny uden de gamle versioner.
 - Alt andet kører videre: port-forwards, tunnel og Grafana.
 
+### Fault isolation (Scenario 6)
+
+Nulstil begge databaser, stop så database b, og kør med `SPLIT=yes`:
+```
+kubectl scale statefulset postgres-b -n booking --replicas=0
+k6 run -e MODE=writes -e SPLIT=yes -e START=150 -e STEP=50 -e STEPS=8 -e BASE_URL=<adressen fra trin 5> LoadTest-k6/script.js
+kubectl scale statefulset postgres-b -n booking --replicas=1
+```
+
+Med `SPLIT=yes` er hvert trin to scenarier med hver sin halve fart og 15 VUs: `rate_150_a` køber kun i database a, `rate_150_b` kun i b. Så kan køb, der hænger på den døde database, ikke bruge a's VUs op (`docs/metrics/test-description.md`, 6). Opsummeringen har derfor `{ scenario:rate_150_a }` og `{ scenario:rate_150_b }` i stedet for `db:a`/`db:b`-linjerne.
+
 ### Skriv resultaterne ind
 
 k6's opsummering har en linje pr. trin, opkaldt efter farten, fx `{ scenario:rate_150 }`. Skriv for hvert trin ind i `docs/metrics/results.md`:

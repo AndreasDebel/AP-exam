@@ -8,6 +8,7 @@ const baseUrl = __ENV.BASE_URL;           // fx "http://127.0.0.1:54321" fra "mi
 const start = Number(__ENV.START);        // requests pr. sekund i første trin, fx 50
 const stepSize = Number(__ENV.STEP);      // hvor meget hvert trin lægger til, fx 50
 const stepCount = Number(__ENV.STEPS);    // antal trin, fx 8
+const split = __ENV.SPLIT === 'yes';      // Scenario 6 (fault isolation): database a og b får hver sin halvdel, se nedenfor
 
 // Each step is its own k6 "scenario": 1 minute at a fixed rate, then a 30 s pause before the next one starts.
 // The pause lets requests from the previous step finish (k6 waits up to 30 s for them), so steps never overlap,
@@ -35,6 +36,42 @@ const warmupLength = 90;   // seconds: 60 s warm-up + 30 s pause. Every step sta
 for (let i = 0; i < stepCount; i++) {
     const rate = start + i * stepSize;
     const name = `rate_${rate}`;
+
+    if (split) {
+        // Scenario 6 (fault isolation): two scenarios per step, one per database, each at half the rate with
+        // its own 15 VUs. A buy to a dead database b that hangs can then only use up b's VUs, never a's,
+        // so a's numbers show what the system does to a, not that k6 ran out of VUs (test-description.md, 6).
+        // The scenario's env DB tells the default function below which sections to buy in.
+        scenarios[`${name}_a`] = {
+            executor: 'constant-arrival-rate',
+            rate: rate / 2,
+            timeUnit: '1s',
+            duration: '1m',
+            startTime: `${warmupLength + i * 90}s`,
+            preAllocatedVUs: 15,
+            maxVUs: 15,
+            env: { DB: 'a' },
+        };
+        scenarios[`${name}_b`] = {
+            executor: 'constant-arrival-rate',
+            rate: rate / 2,
+            timeUnit: '1s',
+            duration: '1m',
+            startTime: `${warmupLength + i * 90}s`,
+            preAllocatedVUs: 15,
+            maxVUs: 15,
+            env: { DB: 'b' },
+        };
+        // Same summary lines as below, one set per database.
+        thresholds[`http_req_duration{scenario:${name}_a}`] = ['p(95)>=0'];
+        thresholds[`http_req_failed{scenario:${name}_a}`] = ['rate>=0'];
+        thresholds[`dropped_iterations{scenario:${name}_a}`] = ['count>=0'];
+        thresholds[`http_req_duration{scenario:${name}_b}`] = ['p(95)>=0'];
+        thresholds[`http_req_failed{scenario:${name}_b}`] = ['rate>=0'];
+        thresholds[`dropped_iterations{scenario:${name}_b}`] = ['count>=0'];
+        continue;
+    }
+
     scenarios[name] = {
         executor: 'constant-arrival-rate',   // fast fart: rate requests pr. sekund, uanset hvor hurtigt API'en svarer
         rate: rate,
@@ -42,12 +79,12 @@ for (let i = 0; i < stepCount; i++) {
         duration: '1m',
         startTime: `${warmupLength + i * 90}s`,   // efter warm-up, så 60 s trin + 30 s pause
         preAllocatedVUs: 30,
-        maxVUs: 30,   // mange, så requests der hænger (død database) ikke løber tør for VUs
+        maxVUs: 30,   // writes: API'ens connection pool (test-description.md, VUs)
     };
 
     // Ikke pass/fail-grænser (">= 0" er altid sandt). Linjerne får bare k6 til at skrive tallene
     // ud for hvert trin i sin opsummering: svartid og fejlprocent for trinnet som helhed (tabellen),
-    // for database a og b hver for sig (fault isolation), og om k6 nåede at sende det hele.
+    // for database a og b hver for sig, og om k6 nåede at sende det hele.
     thresholds[`http_req_duration{scenario:${name}}`] = ['p(95)>=0'];
     thresholds[`http_req_failed{scenario:${name}}`] = ['rate>=0'];
     thresholds[`http_req_duration{scenario:${name},db:a}`] = ['p(95)>=0'];
@@ -68,7 +105,17 @@ http.setResponseCallback(http.expectedStatuses(200, 409));   // 409 er ikke en f
 
 export default function () {
     // Loadtest-sektionerne 101-140 (k8s/api.yaml): 101-120 i database a, 121-140 i database b.
-    const section = 101 + Math.floor(Math.random() * 40);
+    // With SPLIT=yes each step's scenario sets DB, and only that database's 20 sections are used.
+    let first = 101;
+    let count = 40;
+    if (__ENV.DB === 'a') {
+        count = 20;
+    }
+    if (__ENV.DB === 'b') {
+        first = 121;
+        count = 20;
+    }
+    const section = first + Math.floor(Math.random() * count);
     let db = 'b';
     if (section <= 120) {
         db = 'a';
