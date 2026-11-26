@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="670" height="844" viewBox="0 0 670 844" font-family="Segoe UI, Helvetica, Arial, sans-serif">
-  <rect width="670" height="844" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="670" height="924" viewBox="0 0 670 924" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="670" height="924" fill="#ffffff"/>
 
   <!-- Title -->
   <text x="20" y="38" font-size="22" font-weight="bold" fill="#1f2933">Test scenarios: what to measure</text>
@@ -10,98 +10,98 @@
   <text x="314" y="98" font-size="16" font-weight="bold" fill="#ffffff">Local load generator</text>
 
   <!-- Row backgrounds (zebra) -->
-  <rect x="20" y="124" width="630" height="100" fill="#f5f7fa"/>
-  <rect x="20" y="224" width="630" height="100" fill="#ffffff"/>
-  <rect x="20" y="324" width="630" height="100" fill="#f5f7fa"/>
-  <rect x="20" y="424" width="630" height="100" fill="#ffffff"/>
-  <rect x="20" y="524" width="630" height="100" fill="#f5f7fa"/>
-  <rect x="20" y="624" width="630" height="100" fill="#ffffff"/>
-  <rect x="20" y="724" width="630" height="100" fill="#f5f7fa"/>
+  <rect x="20" y="124" width="630" height="140" fill="#f5f7fa"/>
+  <rect x="20" y="264" width="630" height="140" fill="#ffffff"/>
+  <rect x="20" y="404" width="630" height="100" fill="#f5f7fa"/>
+  <rect x="20" y="504" width="630" height="100" fill="#ffffff"/>
+  <rect x="20" y="604" width="630" height="100" fill="#f5f7fa"/>
+  <rect x="20" y="704" width="630" height="100" fill="#ffffff"/>
+  <rect x="20" y="804" width="630" height="100" fill="#f5f7fa"/>
 
   <!-- Grid lines -->
   <g stroke="#9aa5b1" stroke-width="1" fill="none">
-    <rect x="20" y="60" width="630" height="764"/>
-    <line x1="300" y1="60" x2="300" y2="824"/>
-    <line x1="20" y1="224" x2="650" y2="224"/>
-    <line x1="20" y1="324" x2="650" y2="324"/>
-    <line x1="20" y1="424" x2="650" y2="424"/>
-    <line x1="20" y1="524" x2="650" y2="524"/>
-    <line x1="20" y1="624" x2="650" y2="624"/>
-    <line x1="20" y1="724" x2="650" y2="724"/>
+    <rect x="20" y="60" width="630" height="844"/>
+    <line x1="300" y1="60" x2="300" y2="904"/>
+    <line x1="20" y1="264" x2="650" y2="264"/>
+    <line x1="20" y1="404" x2="650" y2="404"/>
+    <line x1="20" y1="504" x2="650" y2="504"/>
+    <line x1="20" y1="604" x2="650" y2="604"/>
+    <line x1="20" y1="704" x2="650" y2="704"/>
+    <line x1="20" y1="804" x2="650" y2="804"/>
   </g>
 
   <!-- Row 1: Baseline (reads) -->
-  <text x="34" y="154" font-size="15" font-weight="bold" fill="#1f2933">1. Baseline (reads)</text>
-  <text x="34" y="176" font-size="13" fill="#3e4c59">1 API · 1 Postgres · Redis off</text>
-  <text x="34" y="196" font-size="12" font-style="italic" fill="#616e7c">Load: reads · 3 runs</text>
+  <text x="34" y="164" font-size="15" font-weight="bold" fill="#1f2933">1. Baseline (reads)</text>
+  <text x="34" y="186" font-size="13" fill="#3e4c59">1 API · 1 Postgres · Redis off</text>
+  <text x="34" y="206" font-size="12" font-style="italic" fill="#616e7c">Load: reads · 3 runs</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="142">p95 > 200 ms at:</text><text x="474" y="142">avg ___ req/s</text>
-    <text x="328" y="160">max spread:</text><text x="474" y="160">± ___ req/s</text>
-    <text x="314" y="178">errors > 1% at:</text><text x="474" y="178">avg ___ req/s</text>
-    <text x="328" y="196">max spread:</text><text x="474" y="196">± ___ req/s</text>
-    <text x="314" y="214">step size:</text><text x="474" y="214">______ req/s</text>
+    <text x="314" y="158">p95 > 200 ms at:</text><text x="474" y="158">avg 1767 req/s</text>
+    <text x="328" y="180">max spread:</text><text x="488" y="180">± 33 req/s</text>
+    <text x="314" y="202">errors > 1% at:</text><text x="474" y="202">&gt; 1850 req/s</text>
+    <text x="328" y="224">max spread:</text><text x="488" y="224">- (not reached)</text>
+    <text x="314" y="246">step size:</text><text x="474" y="246">50 req/s</text>
   </g>
 
   <!-- Row 2: Baseline (writes) -->
-  <text x="34" y="254" font-size="15" font-weight="bold" fill="#1f2933">2. Baseline (writes)</text>
-  <text x="34" y="276" font-size="13" fill="#3e4c59">1 API · 1 Postgres · Redis off</text>
-  <text x="34" y="296" font-size="12" font-style="italic" fill="#616e7c">Load: writes · 3 runs</text>
+  <text x="34" y="304" font-size="15" font-weight="bold" fill="#1f2933">2. Baseline (writes)</text>
+  <text x="34" y="326" font-size="13" fill="#3e4c59">1 API · 1 Postgres · Redis off</text>
+  <text x="34" y="346" font-size="12" font-style="italic" fill="#616e7c">Load: writes · 3 runs</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="242">p95 > 200 ms at:</text><text x="474" y="242">avg ___ req/s</text>
-    <text x="328" y="260">max spread:</text><text x="474" y="260">± ___ req/s</text>
-    <text x="314" y="278">errors > 1% at:</text><text x="474" y="278">avg ___ req/s</text>
-    <text x="328" y="296">max spread:</text><text x="474" y="296">± ___ req/s</text>
-    <text x="314" y="314">step size:</text><text x="474" y="314">______ req/s</text>
+    <text x="314" y="298">p95 > 200 ms at:</text><text x="474" y="298">avg 217 req/s</text>
+    <text x="328" y="320">max spread:</text><text x="488" y="320">± 33 req/s</text>
+    <text x="314" y="342">errors > 1% at:</text><text x="474" y="342">&gt; 350 req/s</text>
+    <text x="328" y="364">max spread:</text><text x="488" y="364">- (not reached)</text>
+    <text x="314" y="386">step size:</text><text x="474" y="386">50 req/s</text>
   </g>
 
   <!-- Row 3: X-scaling the API -->
-  <text x="34" y="354" font-size="15" font-weight="bold" fill="#1f2933">3. X-scaling the API</text>
-  <text x="34" y="376" font-size="13" fill="#3e4c59">3 API · 1 Postgres · Redis off</text>
-  <text x="34" y="396" font-size="12" font-style="italic" fill="#616e7c">Load: reads</text>
+  <text x="34" y="434" font-size="15" font-weight="bold" fill="#1f2933">3. X-scaling the API</text>
+  <text x="34" y="456" font-size="13" fill="#3e4c59">3 API · 1 Postgres · Redis off</text>
+  <text x="34" y="476" font-size="12" font-style="italic" fill="#616e7c">Load: reads</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="354">p95 > 200 ms at:</text><text x="474" y="354">______ req/s</text>
-    <text x="314" y="376">errors > 1% at:</text><text x="474" y="376">______ req/s</text>
-    <text x="314" y="398">step size:</text><text x="474" y="398">______ req/s</text>
+    <text x="314" y="434">p95 > 200 ms at:</text><text x="474" y="434">______ req/s</text>
+    <text x="314" y="456">errors > 1% at:</text><text x="474" y="456">______ req/s</text>
+    <text x="314" y="478">step size:</text><text x="474" y="478">______ req/s</text>
   </g>
 
   <!-- Row 4: Z-scaling the database -->
-  <text x="34" y="454" font-size="15" font-weight="bold" fill="#1f2933">4. Z-scaling the database</text>
-  <text x="34" y="476" font-size="13" fill="#3e4c59">1 API · 2 Postgres · Redis off</text>
-  <text x="34" y="496" font-size="12" font-style="italic" fill="#616e7c">Load: writes</text>
+  <text x="34" y="534" font-size="15" font-weight="bold" fill="#1f2933">4. Z-scaling the database</text>
+  <text x="34" y="556" font-size="13" fill="#3e4c59">1 API · 2 Postgres · Redis off</text>
+  <text x="34" y="576" font-size="12" font-style="italic" fill="#616e7c">Load: writes</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="454">p95 > 200 ms at:</text><text x="474" y="454">______ req/s</text>
-    <text x="314" y="476">errors > 1% at:</text><text x="474" y="476">______ req/s</text>
-    <text x="314" y="498">step size:</text><text x="474" y="498">______ req/s</text>
+    <text x="314" y="534">p95 > 200 ms at:</text><text x="474" y="534">______ req/s</text>
+    <text x="314" y="556">errors > 1% at:</text><text x="474" y="556">______ req/s</text>
+    <text x="314" y="578">step size:</text><text x="474" y="578">______ req/s</text>
   </g>
 
   <!-- Row 5: Redis cache -->
-  <text x="34" y="554" font-size="15" font-weight="bold" fill="#1f2933">5. Redis cache</text>
-  <text x="34" y="576" font-size="13" fill="#3e4c59">1 API · 1 Postgres · Redis on</text>
-  <text x="34" y="596" font-size="12" font-style="italic" fill="#616e7c">Load: reads</text>
+  <text x="34" y="634" font-size="15" font-weight="bold" fill="#1f2933">5. Redis cache</text>
+  <text x="34" y="656" font-size="13" fill="#3e4c59">1 API · 1 Postgres · Redis on</text>
+  <text x="34" y="676" font-size="12" font-style="italic" fill="#616e7c">Load: reads</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="554">p95 > 200 ms at:</text><text x="474" y="554">______ req/s</text>
-    <text x="314" y="576">errors > 1% at:</text><text x="474" y="576">______ req/s</text>
-    <text x="314" y="598">step size:</text><text x="474" y="598">______ req/s</text>
+    <text x="314" y="634">p95 > 200 ms at:</text><text x="474" y="634">______ req/s</text>
+    <text x="314" y="656">errors > 1% at:</text><text x="474" y="656">______ req/s</text>
+    <text x="314" y="678">step size:</text><text x="474" y="678">______ req/s</text>
   </g>
 
   <!-- Row 6: Fault isolation -->
-  <text x="34" y="654" font-size="15" font-weight="bold" fill="#1f2933">6. Fault isolation</text>
-  <text x="34" y="676" font-size="13" fill="#3e4c59">4's setup, postgres-b stopped</text>
-  <text x="34" y="696" font-size="12" font-style="italic" fill="#616e7c">Load: writes · limits from db:a only</text>
+  <text x="34" y="734" font-size="15" font-weight="bold" fill="#1f2933">6. Fault isolation</text>
+  <text x="34" y="756" font-size="13" fill="#3e4c59">4's setup, postgres-b stopped</text>
+  <text x="34" y="776" font-size="12" font-style="italic" fill="#616e7c">Load: writes · limits from db:a only</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="646">p95 > 200 ms at:</text><text x="474" y="646">______ req/s</text>
-    <text x="314" y="666">errors > 1% at:</text><text x="474" y="666">______ req/s</text>
-    <text x="314" y="686">step size:</text><text x="474" y="686">______ req/s</text>
-    <text x="314" y="706">db:b failed:</text><text x="474" y="706">fast / hang, ___ ms</text>
+    <text x="314" y="726">p95 > 200 ms at:</text><text x="474" y="726">______ req/s</text>
+    <text x="314" y="746">errors > 1% at:</text><text x="474" y="746">______ req/s</text>
+    <text x="314" y="766">step size:</text><text x="474" y="766">______ req/s</text>
+    <text x="314" y="786">db:b failed:</text><text x="474" y="786">fast / hang, ___ ms</text>
   </g>
 
   <!-- Row 7: Oversell check -->
-  <text x="34" y="754" font-size="15" font-weight="bold" fill="#1f2933">7. Oversell check</text>
-  <text x="34" y="776" font-size="13" fill="#3e4c59">4's setup, low capacity</text>
-  <text x="34" y="796" font-size="12" font-style="italic" fill="#616e7c">Load: writes · correctness, not speed</text>
+  <text x="34" y="834" font-size="15" font-weight="bold" fill="#1f2933">7. Oversell check</text>
+  <text x="34" y="856" font-size="13" fill="#3e4c59">4's setup, low capacity</text>
+  <text x="34" y="876" font-size="12" font-style="italic" fill="#616e7c">Load: writes · correctness, not speed</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="754">sold ≤ capacity (a):</text><text x="474" y="754">yes / no</text>
-    <text x="314" y="776">sold ≤ capacity (b):</text><text x="474" y="776">yes / no</text>
-    <text x="314" y="798">409 answers:</text><text x="474" y="798">______</text>
+    <text x="314" y="834">sold ≤ capacity (a):</text><text x="474" y="834">yes / no</text>
+    <text x="314" y="856">sold ≤ capacity (b):</text><text x="474" y="856">yes / no</text>
+    <text x="314" y="878">409 answers:</text><text x="474" y="878">______</text>
   </g>
 </svg>
