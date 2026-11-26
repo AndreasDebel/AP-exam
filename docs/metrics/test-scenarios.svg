@@ -156,10 +156,10 @@
   <text x="34" y="1046" font-size="13" fill="#3e4c59">3 API · 2 Postgres · Redis off</text>
   <text x="34" y="1068" font-size="12" font-style="italic" fill="#616e7c">Load: writes · compare with 4</text>
   <g font-family="Consolas, Menlo, monospace" font-size="13" fill="#1f2933">
-    <text x="314" y="1007.8">p95 > 200 ms at:</text><text x="478" y="1007.8">&gt; 500 req/s</text>
-    <text x="314" y="1034.2">errors > 1% at:</text><text x="478" y="1034.2">&gt; 500 req/s</text>
-    <text x="314" y="1060.8">max got through:</text><text x="478" y="1060.8">500 req/s (all sent)</text>
-    <text x="314" y="1087.2">step size:</text><text x="478" y="1087.2">50 req/s</text>
+    <text x="314" y="1007.8">p95 > 200 ms at:</text><text x="478" y="1007.8">&gt; 1200 req/s</text>
+    <text x="314" y="1034.2">errors > 1% at:</text><text x="478" y="1034.2">&gt; 1200 req/s</text>
+    <text x="314" y="1060.8">max got through:</text><text x="478" y="1060.8">799 req/s (at 800)</text>
+    <text x="314" y="1087.2">step size:</text><text x="478" y="1087.2">100 req/s</text>
   </g>
 
   <!-- Row 9. X-scaling + Redis -->

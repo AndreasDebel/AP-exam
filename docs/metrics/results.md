@@ -313,29 +313,32 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
 
 ## 8. X+Z scaling (writes) - run 1
 
-- **Date:** 2026-11-26, 12:52:46-13:05:46
-- **Step size:** 50 req/s
+- **Date:** 2026-11-26, 15:48:52-16:01:52
+- **Step size:** 100 req/s
+- **Grafana time ranges:** warm-up 15:48:52-15:49:52, 500 15:50:22-15:51:22, 600 15:51:52-15:52:52, 700 15:53:22-15:54:22, 800 15:54:52-15:55:52, 900 15:56:22-15:57:22, 1000 15:57:52-15:58:52, 1100 15:59:22-16:00:22, 1200 16:00:52-16:01:52.
 - **Notes:**
-  - Same load test as Scenario 4: `k6 run -e MODE=writes -e START=150 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`, with `preAllocatedVUs: 30` and `maxVUs: 30` in `script.js`.
-  - Setup: as Scenario 4, but `replicas: 3` in `k8s/api.yaml`. Both databases reset before the run (README step 6), `sold` = 0.
-  - 164,140 requests, 0 failed. After the run `sold` summed to 81,973 in database a and 82,151 in database b, over 20 sections each.
-  - Dropped: k6's `dropped_iterations` for the step. Got through: (step rate × 60 - dropped) / 60.
-  - **Throughput:** highest 500 at 500, the last step. Scenario 4's highest was 330.
-  - p95 is never over 200 ms (`> 500`); highest 11.40 ms at 400. Dropped iterations only at 250, 400 and 450 (at most 539), not in the steps after 250 and 400.
-  - CPU API at most 0.19, CPU Postgres at most 0.13. Neither at its limit (0.25).
+  - Command: `k6 run -e MODE=writes -e START=500 -e STEP=100 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`, with `preAllocatedVUs: 30` and `maxVUs: 30` in `script.js`, as in Scenario 4.
+  - Setup: as Scenario 4, but `replicas: 3` in `k8s/api.yaml`. Both databases reset before the run (`LoadTest-k6/README.md`), `sold` = 0.
+  - `START=500` and step 100 instead of Scenario 4's 150 and 50: a first run at 150-500 (`other-results/sc8-other-results.md`, R2) and a coarse run at 500-1750 (R1) came first.
+  - 300,731 requests, 0 failed.
+  - Dropped: k6's `dropped_iterations` for the step. Got through: (step rate × 60 - dropped) / 60. Grafana's panel "Requests/sec got through" showed 800 at the end of the 800 step.
+  - k6 warned `Insufficient VUs, reached 30 active VUs` in the warm-up and at 500, 700, 800, 900, 1000, 1100 and 1200.
+  - **Throughput:** highest 799 at 800. Scenario 4's highest was 330.
+  - p95 is over 200 ms only at 1000 (268.34), not in the steps after (`> 1200`).
+  - p95 per database (`db:a` / `db:b`): 900 100.97 / 167.86, 1000 274.33 / 259.90, 1100 185.97 / 120.41, 1200 196.21 / 199.06.
   - CPU from k6's `CPU per step` lines (busiest of the 3 API pods, busiest of the 2 Postgres pods).
-  - Screenshot: `images/8-x-z-scaling/sc8.png`.
+  - Screenshot: `images/8-x-z-scaling/sc8-500-1200.png`.
 
 | Step (req/s) | p95 (ms) | Error rate (%) | Dropped | Got through (req/s) | CPU API (cores) | CPU Postgres (cores) |
 |--------------|----------|----------------|---------|---------------------|-----------------|----------------------|
-| 150          | 10.92    | 0.00           | 0       | 150                 | 0.12            | 0.07                 |
-| 200          | 7.56     | 0.00           | 0       | 200                 | 0.10            | 0.08                 |
-| 250          | 8.44     | 0.00           | 202     | 247                 | 0.13            | 0.09                 |
-| 300          | 5.40     | 0.00           | 0       | 300                 | 0.15            | 0.10                 |
-| 350          | 4.88     | 0.00           | 0       | 350                 | 0.15            | 0.11                 |
-| 400          | 11.40    | 0.00           | 142     | 398                 | 0.17            | 0.11                 |
-| 450          | 5.30     | 0.00           | 539     | 441                 | 0.18            | 0.12                 |
-| 500          | 5.31     | 0.00           | 0       | 500                 | 0.19            | 0.13                 |
+| 500          | 12.43    | 0.00           | 42      | 499                 | 0.21            | 0.15                 |
+| 600          | 17.80    | 0.00           | 0       | 600                 | 0.23            | 0.16                 |
+| 700          | 29.73    | 0.00           | 2,065   | 666                 | 0.24            | 0.19                 |
+| 800          | 21.24    | 0.00           | 81      | 799                 | 0.25            | 0.22                 |
+| 900          | 139.50   | 0.00           | 19,851  | 569                 | 0.24            | 0.24                 |
+| 1000         | 268.34   | 0.00           | 35,953  | 401                 | 0.21            | 0.22                 |
+| 1100         | 172.76   | 0.00           | 34,298  | 528                 | 0.23            | 0.24                 |
+| 1200         | 197.44   | 0.00           | 44,257  | 462                 | 0.22            | 0.24                 |
 
 ## 9. X-scaling + Redis (reads) - run 1
 
