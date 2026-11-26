@@ -5,7 +5,7 @@ metadata:
   name: api
   namespace: booking
 spec:
-  replicas: 1 # X-scaling is this number.
+  replicas: 3 # X-scaling is this number.
   selector:
     matchLabels:
       app: api
@@ -33,7 +33,7 @@ spec:
           # Load test (#30): each copy may use at most a quarter of a CPU core (250m). Without a limit one copy takes every core
           # on the laptop, and 3 copies just share the same cores, so X-scaling would show nothing.
           # A quarter, not a whole core: the laptop has 4 physical cores shared with k6, and with 1 core per pod no pod
-          # reached its limit even at 2200 req/s (docs/metrics/other-results.md, runs A-C).
+          # reached its limit even at 2200 req/s (docs/metrics/other-results/sc1-other-results.md, runs A-C).
           # requests is kept low so all pods still fit on the single Minikube node.
           resources:
             requests:

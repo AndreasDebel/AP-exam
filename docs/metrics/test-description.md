@@ -17,8 +17,10 @@ Each row changes one thing from the row it is compared with. Everything else sta
 | 3   | X-scaling the API | 3 API · 1 Postgres · Redis off          | reads  | 1. Baseline (reads)  |
 | 4   | Z-scaling the DB  | 1 API · 2 Postgres · Redis off          | writes | 2. Baseline (writes) |
 | 5   | Redis cache       | 1 API · 1 Postgres · Redis on (2 s TTL) | reads  | 1. Baseline (reads)  |
-| 6   | Fault isolation   | 4's setup, `postgres-b` stopped         | writes | 4. Z-scaling the DB  |
-| 7   | Oversell check    | 4's setup, low section capacity         | writes | - (pass/fail)        |
+| 6   | Fault isolation   | 8's setup, `postgres-b` stopped         | writes | 8. X+Z scaling       |
+| 7   | Oversell check    | 8's setup, low section capacity         | writes | - (pass/fail)        |
+| 8   | X+Z scaling       | 3 API · 2 Postgres · Redis off          | writes | 4. Z-scaling the DB  |
+| 9   | X-scaling + Redis | 3 API · 1 Postgres · Redis on (2 s TTL) | reads  | 5. Redis cache       |
 
 - **Reads** = `GET /sections/{id}`. **Writes** = `POST /sections/{id}/buy`. Never mixed in one run, so it is clear which one hits the limit.
 - **How to switch setup:**
@@ -26,15 +28,24 @@ Each row changes one thing from the row it is compared with. Everything else sta
   - Redis: `CacheEnabled` in `k8s/api.yaml`.
   - 1 or 2 Postgres: in `k8s/db-credentials.yaml`, point `b`'s `Host` at `postgres-a-0.postgres-a` for 1 Postgres. Then every section uses database a.
   - Run `kubectl apply -k k8s` after each change.
-- **6. Fault isolation** asks: when database b dies, do buyers on database a notice? k6 runs the same load as 4. Z-scaling, spread over all 40 sections, so requests to the dead database keep loading the shared API (as buyers would keep trying). k6 tags every request with its database (`db:a` / `db:b`) and prints the response time for each separately. The table values come from `db:a`. Also write down how the `db:b` requests failed (a fast error, or a hang). The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
-- **7. Oversell check** is a correctness test, not a speed test. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
+- **8. X+Z scaling** was added after 4: there the API, not Postgres, sat at its CPU limit. 8 keeps 4's setup and load test unchanged and adds 2 API copies, to see whether the API was what held 4 back.
+- **9. X-scaling + Redis** was added after 5: there the API sat at its CPU limit while Postgres used 0.01 cores. 9 keeps 5's setup and load test and adds 2 API copies, to see whether the API was what held 5 back. Coarse run (2000-8000, step 1000), as 5's was coarse (1500-4000, step 500).
+- **6. Fault isolation** asks: when database b dies, do buyers on database a notice? It uses 8's setup (3 API copies), so the API has room to spare and only the dead database can explain a change on a. Same steps as 8 (150-500, step 50), but k6 runs with `SPLIT=yes`:
+  - Each step is two k6 scenarios: `rate_<n>_a` buys in sections 101-120 (database a) and `rate_<n>_b` in 121-140 (database b), each at half the step's rate with its own 15 VUs (instead of 30 shared).
+  - Why: with shared VUs, buys to b that hang would use up the VUs, and a would get fewer buys through because of k6, not the system. Split, a and b share only the API, which is what the test is about.
+  - Requests to the dead database keep loading the shared API (as buyers would keep trying).
+  - Stop database b after resetting both: `kubectl scale statefulset postgres-b -n booking --replicas=0`. Start it again with `--replicas=1`.
+  - The table has p95 and error rate for each database; Dropped and Got through are for a. Also write down how the b requests failed (a fast error, or a hang).
+  - The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
+- **7. Oversell check** is a correctness test, not a speed test. It uses 8's setup (3 API copies), so buys race across separate processes and only the database can stop an oversell. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
 
 ## What each cell records
 
-Speed rows (1-6, all except 7. Oversell check):
+Speed rows (all except 7. Oversell check):
 
-- **p95 > 200 ms at:** the first load step (req/s) where p95 goes over 200 ms.
+- **p95 > 200 ms at:** the first load step (req/s) from which p95 stays over 200 ms: that step and every later step in the run are over. A single step over 200 ms followed by steps under it is a blip, not the limit; write it in the run's notes.
 - **errors > 1% at:** the first load step (req/s) where the error rate goes over 1%.
+- **throughput (writes with 30 VUs: 2, 4, 6, 8):** the highest number of requests answered per second in any step (`Got through` in `results.md`). With 30 VUs p95 cannot rise much above the limit, so this is where an improvement shows (`results.md`, Scenario 4: p95 never over 200 ms, throughput 330 against Scenario 2's about 200).
 - **step size:** the step increment used, so the reader can see how precise the two limits are (a limit of 300 with step 50 means "between 250 and 300").
 
 200 ms is our own target response time (SLO), not a law. Users stay in flow up to about 1 s (Nielsen); 200 ms on the server leaves room for network and UI. Normal local latency is a few ms to a few tens of ms, so crossing 200 ms means requests are queuing: the system is saturated.
@@ -49,6 +60,11 @@ One k6 run starts with 1 minute of warm-up at the first step's rate (not measure
 - **Start:** free per row. A row expected to hold more load may start higher; only the step size must match.
 - **Stop:** choose `STEPS` so the run crosses both limits; if it does not, run again with a higher `START`. Or stop earlier if the person running the test judges that a limit will not be reached. Then write `> 400` in the cell, where 400 is the last step measured, and give the reason in the run's notes in `results.md`.
 - **Baseline cells:** the average of the 3 runs' limits, plus **max spread**: the largest distance from that average to any one run. E.g. runs at 250 / 300 / 300 give `avg 283`, `max spread ± 33`. The 3 single values go in `results.md`.
+- **VUs (k6's virtual users, one request at a time each), chosen so far:**
+  - **Reads (Scenario 1):** `preAllocatedVUs: 20`, `maxVUs: 1000`. k6 adds VUs as requests get slower.
+  - **Writes (Scenario 2):** `preAllocatedVUs: 30`, `maxVUs: 30`, the size of the API's connection pool. With 1000, a short slow moment piled hundreds of buys up inside the API, waiting for 30 connections and the row locks of 40 sections, and p95 zigzagged instead of rising with the rate (`other-results/sc2-other-results.md`, P1-P3 and Q-X; `error-sources.md`, 6). With 30, the waiting happens in k6 instead. Price: above the limit p95 levels off at about 300 ms, so the overload shows as `dropped_iterations` and fewer requests getting through, and the bullet below does not apply: a dropped iteration here means the system is too slow, not k6.
+  - **Scenarios 3-7:** not decided. A fixed 30 may become the limit itself when there are more APIs or databases (more connection pools); decide when those rows are run.
+  - `script.js` holds one value at a time: set it to match the scenario before a run, and write it in the run's notes.
 - **k6 could not keep up:** if a step's `dropped_iterations` is above 0, k6 did not manage to send that step's rate. Write it in the run's notes: that step measured k6, not our system.
 
 ## Metric source
@@ -64,7 +80,7 @@ One k6 run starts with 1 minute of warm-up at the first step's rate (not measure
 | Change               | What                                                                                                                                                                                                                                                                                                                                              | Serves                                                                   |
 |----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
 | Minikube with 6 CPUs | `minikube delete`, then `minikube start --cpus=6 --memory=6000` (Docker Desktop had about 6.6 GB to give). 6 is more than the pod limits below add up to (about 2.25 cores with 3 API copies); the pod limits, not this number, keep the laptop's 4 physical cores free for Windows and k6. Check that Docker Desktop is allowed at least 6 CPUs. | Room for every pod to reach its limit                                    |
-| CPU limits           | Each API copy and each Postgres: at most 0.25 core. Redis, Prometheus, Grafana: a small cap. (In the yaml files under `resources`.) With 1 core each, no pod reached its limit even at 2200 req/s (`other-results.md`, runs A-C).                                                                                                                 | X- and Z-scaling add real cores instead of sharing the same ones         |
+| CPU limits           | Each API copy and each Postgres: at most 0.25 core. Redis, Prometheus, Grafana: a small cap. (In the yaml files under `resources`.) With 1 core each, no pod reached its limit even at 2200 req/s (`other-results/sc1-other-results.md`, runs A-C).                                                                                                                 | X- and Z-scaling add real cores instead of sharing the same ones         |
 | CPU per pod          | Prometheus reads cAdvisor (Kubernetes' built-in meter for CPU per container); a Grafana panel shows it                                                                                                                                                                                                                                            | Explaining why a row does not improve                                    |
 | DB connection cap    | `Maximum Pool Size=30` in both connection strings. 3 copies × 30 stays under Postgres' default 100                                                                                                                                                                                                                                                | Keeps "too many clients" errors out of X-scaling                         |
 | 40 sections          | Speed runs use sections 101-140: 101-120 in database a, 121-140 in database b. k6 spreads requests evenly across them. Sections 1-4 are the demo's                                                                                                                                                                                                | Buys spread over many rows, so the database, not one row lock, gets busy |
