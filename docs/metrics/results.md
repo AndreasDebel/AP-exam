@@ -8,6 +8,11 @@ All runs are made on the same machine, so the rows can be compared:
 
 Each section is one k6 run; each table row is one load step in it. Copy the step's p95 and error rate from k6's summary (the lines tagged `scenario:rate_<step>`) (see `test-description.md`). Add or delete step rows as needed. CPU: from the `CPU per step` lines k6 prints just above its summary (busiest API pod and busiest Postgres pod, 0.25 = its limit). Under **Notes**: the API image tag, any step that showed `dropped_iterations`, and anything unusual.
 
+Writes runs with 30 VUs (Scenarios 2, 4, 6 and 8) have two extra columns, because there p95 levels off below about 300 ms and the overload shows as requests k6 could not send instead (`test-description.md`, VUs):
+
+- **Dropped:** k6's `dropped_iterations` for the step (the lines tagged `scenario:rate_<step>`).
+- **Got through (req/s):** the throughput, requests answered per second: (step rate × 60 - dropped) / 60.
+
 ## 1. Baseline (reads) - run 1
 
 - **Date:** 2026-11-25, 11:36:33-11:49:41
@@ -111,6 +116,7 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
   - 100 is slower than 150. Postgres CPU at 350 (0.15) is lower than at 300, although as many requests got through.
   - Same as run Y in `other-results/sc2-other-results.md`.
   - CPU from k6's `CPU per step` lines.
+  - Screenshot: `images/2-baseline-writes/sc2-run1.png`.
 
 | Step (req/s) | p95 (ms) | Error rate (%) | Dropped | Got through (req/s) | CPU API (cores) | CPU Postgres (cores) |
 |--------------|----------|----------------|---------|---------------------|-----------------|----------------------|
@@ -132,6 +138,7 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
   - Dropped: k6's `dropped_iterations` for the step. Got through: the step's requests / 60 s.
   - p95 is over 200 ms from 200.
   - CPU from k6's `CPU per step` lines.
+  - Screenshot: `images/2-baseline-writes/sc2-run2.png`.
 
 | Step (req/s) | p95 (ms) | Error rate (%) | Dropped | Got through (req/s) | CPU API (cores) | CPU Postgres (cores) |
 |--------------|----------|----------------|---------|---------------------|-----------------|----------------------|
@@ -153,6 +160,7 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
   - Dropped: k6's `dropped_iterations` for the step. Got through: the step's requests / 60 s.
   - p95 is over 200 ms from 200.
   - CPU from k6's `CPU per step` lines.
+  - Screenshot: `images/2-baseline-writes/sc2-run3.png`.
 
 | Step (req/s) | p95 (ms) | Error rate (%) | Dropped | Got through (req/s) | CPU API (cores) | CPU Postgres (cores) |
 |--------------|----------|----------------|---------|---------------------|-----------------|----------------------|
@@ -167,15 +175,16 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
 
 Average and max spread as in `test-description.md` (Baseline cells). Rounded to whole req/s.
 
-| Run        | p95 > 200 ms at (req/s) | errors > 1% at (req/s) |
-|------------|-------------------------|------------------------|
-| 1          | 250                     | > 350                  |
-| 2          | 200                     | > 350                  |
-| 3          | 200                     | > 350                  |
-| Average    | 217                     | > 350                  |
-| Max spread | ± 33 (run 1)            | - (not reached)        |
+| Run        | p95 > 200 ms at (req/s) | errors > 1% at (req/s) | Max got through (req/s) |
+|------------|-------------------------|------------------------|-------------------------|
+| 1          | 250                     | > 350                  | 203                     |
+| 2          | 200                     | > 350                  | 199                     |
+| 3          | 200                     | > 350                  | 198                     |
+| Average    | 217                     | > 350                  | 200                     |
+| Max spread | ± 33 (run 1)            | - (not reached)        | ± 3 (run 1)             |
 
 - Average: (250 + 200 + 200) / 3 = 216.7. Max spread: 250 - 216.7 = 33.3.
+- Max got through: the highest Got through in the run. Average: (203 + 199 + 198) / 3 = 200.0. Max spread: 203 - 200.0 = 3.0.
 - No request failed in any of the 3 runs, so the error limit is above the last step, 350.
 
 ## 3. X-scaling the API (reads) - run 1
@@ -242,30 +251,72 @@ Average and max spread as in `test-description.md` (Baseline cells). Rounded to 
 
 ## 6. Fault isolation (writes) - run 1
 
-- **Date:**
-- **Step size:** ___ req/s
+- **Date:** 2026-11-26, 13:20:50-13:33:51
+- **Step size:** 50 req/s
 - **Notes:**
+  - Setup: 8's (3 API · 2 Postgres · Redis off), `postgres-b` stopped with `kubectl scale statefulset postgres-b -n booking --replicas=0` after resetting both databases.
+  - Command: `k6 run -e MODE=writes -e SPLIT=yes -e START=150 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`. Each step: half the rate to sections 101-120 (db:a), half to 121-140 (db:b), 15 VUs each (`test-description.md`, 6).
+  - db:a and db:b columns come from k6's `scenario:rate_<n>_a` and `rate_<n>_b` lines. Dropped and Got through are for db:a only, so Got through is at most half the step.
+  - Dropped db:b: 0 in every step except 500 (14).
+  - How db:b failed: HTTP 500, a fast error. A test buy to section 121 before the run: 500 in 30 ms.
+  - k6's totals for the whole run: 164,987 requests, 50.02 % failed (82,535; all db:b).
+  - `sold` in database a after the run: 82,436 (db:a buys in the steps: 77,980; the rest from the warm-up).
+  - CPU API reached 0.25 (its limit) at 500.
+  - Screenshot: `images/6-fault-isolation/sc6.png`.
 
-| Step (req/s) | p95 db:a (ms) | Error rate db:a (%) | p95 db:b (ms) | Error rate db:b (%) | CPU API (cores) | CPU Postgres (cores) |
-|--------------|---------------|---------------------|---------------|---------------------|-----------------|----------------------|
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
-|              |               |                     |               |                     |                 |                      |
+| Step (req/s) | p95 db:a (ms) | Error rate db:a (%) | p95 db:b (ms) | Error rate db:b (%) | Dropped db:a | Got through db:a (req/s) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|---------------|---------------------|---------------|---------------------|--------------|--------------------------|-----------------|----------------------|
+| 150          | 16.30         | 0.00                | 16.32         | 100.00              | 0            | 75                       | 0.14            | 0.11                 |
+| 200          | 12.26         | 0.00                | 12.21         | 100.00              | 0            | 100                      | 0.15            | 0.11                 |
+| 250          | 16.56         | 0.00                | 9.97          | 100.00              | 6            | 125                      | 0.17            | 0.10                 |
+| 300          | 16.12         | 0.00                | 8.42          | 100.00              | 0            | 150                      | 0.16            | 0.12                 |
+| 350          | 12.17         | 0.00                | 7.40          | 100.00              | 0            | 175                      | 0.22            | 0.12                 |
+| 400          | 11.32         | 0.00                | 11.05         | 100.00              | 0            | 200                      | 0.22            | 0.13                 |
+| 450          | 14.44         | 0.00                | 10.56         | 100.00              | 2            | 225                      | 0.23            | 0.12                 |
+| 500          | 41.87         | 0.00                | 45.84         | 100.00              | 15           | 250                      | 0.25            | 0.17                 |
 
 ## 7. Oversell check (writes) - run 1
 
-- **Date:**
-- **Rate:** ___ req/s for 1 minute
+- **Date:** 2026-11-26, 13:41:01-13:43:38
+- **Rate:** 300 req/s for 1 minute, after 1 minute of warm-up at 300 req/s (the warm-up buys too)
 - **Notes:**
+  - Setup: 8's (3 API · 2 Postgres · Redis off), not 4's: with 3 API copies, buys race across separate processes (`test-description.md`, 7).
+  - Before the run, in both databases: `UPDATE section SET sold=0, capacity=100 WHERE id BETWEEN 101 AND 140;` + `VACUUM FULL section;`. Afterwards capacity set back to 1,000,000 and `sold` to 0.
+  - Command: `k6 run -e MODE=writes -e START=300 -e STEP=0 -e STEPS=1 -e BASE_URL=<url> LoadTest-k6/script.js`.
+  - 40 sections × 100 = 4,000 places. `sum(sold)` after the run: 2,000 in database a, 2,000 in database b.
+  - k6's totals: 35,775 requests (35,773 buys + 2 Prometheus queries from `teardown()`), 0 failed, 31,773 refusals. 35,773 - 31,773 = 4,000 buys answered 200.
+  - Dropped: 0 in the step, 227 in the warm-up. p95 5.59 ms in the step. CPU API 0.13, CPU Postgres 0.07.
+  - Screenshot: `images/7-oversell-check/sc7.png`.
 
 | Database | Capacity (each section) | Highest `sold` | sold <= capacity |
 |----------|-------------------------|----------------|------------------|
-| a        | 100                     |                | yes / no         |
-| b        | 100                     |                | yes / no         |
+| a        | 100                     | 100            | yes              |
+| b        | 100                     | 100            | yes              |
 
-- **k6 `refusals` (409 answers):**
+- **k6 `refusals` (409 answers):** 31,773
+
+## 8. X+Z scaling (writes) - run 1
+
+- **Date:** 2026-11-26, 12:52:46-13:05:46
+- **Step size:** 50 req/s
+- **Notes:**
+  - Same load test as Scenario 4: `k6 run -e MODE=writes -e START=150 -e STEP=50 -e STEPS=8 -e BASE_URL=<url> LoadTest-k6/script.js`, with `preAllocatedVUs: 30` and `maxVUs: 30` in `script.js`.
+  - Setup: as Scenario 4, but `replicas: 3` in `k8s/api.yaml`. Both databases reset before the run (README step 6), `sold` = 0.
+  - 164,140 requests, 0 failed. After the run `sold` summed to 81,973 in database a and 82,151 in database b, over 20 sections each.
+  - Dropped: k6's `dropped_iterations` for the step. Got through: (step rate × 60 - dropped) / 60.
+  - **Throughput:** highest 500 at 500, the last step. Scenario 4's highest was 330.
+  - p95 is never over 200 ms (`> 500`); highest 11.40 ms at 400. Dropped iterations only at 250, 400 and 450 (at most 539), not in the steps after 250 and 400.
+  - CPU API at most 0.19, CPU Postgres at most 0.13. Neither at its limit (0.25).
+  - CPU from k6's `CPU per step` lines (busiest of the 3 API pods, busiest of the 2 Postgres pods).
+  - Screenshot: `images/8-x-z-scaling/sc8.png`.
+
+| Step (req/s) | p95 (ms) | Error rate (%) | Dropped | Got through (req/s) | CPU API (cores) | CPU Postgres (cores) |
+|--------------|----------|----------------|---------|---------------------|-----------------|----------------------|
+| 150          | 10.92    | 0.00           | 0       | 150                 | 0.12            | 0.07                 |
+| 200          | 7.56     | 0.00           | 0       | 200                 | 0.10            | 0.08                 |
+| 250          | 8.44     | 0.00           | 202     | 247                 | 0.13            | 0.09                 |
+| 300          | 5.40     | 0.00           | 0       | 300                 | 0.15            | 0.10                 |
+| 350          | 4.88     | 0.00           | 0       | 350                 | 0.15            | 0.11                 |
+| 400          | 11.40    | 0.00           | 142     | 398                 | 0.17            | 0.11                 |
+| 450          | 5.30     | 0.00           | 539     | 441                 | 0.18            | 0.12                 |
+| 500          | 5.31     | 0.00           | 0       | 500                 | 0.19            | 0.13                 |

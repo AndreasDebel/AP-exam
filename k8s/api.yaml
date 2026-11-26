@@ -5,7 +5,7 @@ metadata:
   name: api
   namespace: booking
 spec:
-  replicas: 1 # X-scaling is this number.
+  replicas: 3 # X-scaling is this number.
   selector:
     matchLabels:
       app: api

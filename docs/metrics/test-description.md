@@ -17,8 +17,9 @@ Each row changes one thing from the row it is compared with. Everything else sta
 | 3   | X-scaling the API | 3 API · 1 Postgres · Redis off          | reads  | 1. Baseline (reads)  |
 | 4   | Z-scaling the DB  | 1 API · 2 Postgres · Redis off          | writes | 2. Baseline (writes) |
 | 5   | Redis cache       | 1 API · 1 Postgres · Redis on (2 s TTL) | reads  | 1. Baseline (reads)  |
-| 6   | Fault isolation   | 4's setup, `postgres-b` stopped         | writes | 4. Z-scaling the DB  |
-| 7   | Oversell check    | 4's setup, low section capacity         | writes | - (pass/fail)        |
+| 6   | Fault isolation   | 8's setup, `postgres-b` stopped         | writes | 8. X+Z scaling       |
+| 7   | Oversell check    | 8's setup, low section capacity         | writes | - (pass/fail)        |
+| 8   | X+Z scaling       | 3 API · 2 Postgres · Redis off          | writes | 4. Z-scaling the DB  |
 
 - **Reads** = `GET /sections/{id}`. **Writes** = `POST /sections/{id}/buy`. Never mixed in one run, so it is clear which one hits the limit.
 - **How to switch setup:**
@@ -26,8 +27,15 @@ Each row changes one thing from the row it is compared with. Everything else sta
   - Redis: `CacheEnabled` in `k8s/api.yaml`.
   - 1 or 2 Postgres: in `k8s/db-credentials.yaml`, point `b`'s `Host` at `postgres-a-0.postgres-a` for 1 Postgres. Then every section uses database a.
   - Run `kubectl apply -k k8s` after each change.
-- **6. Fault isolation** asks: when database b dies, do buyers on database a notice? k6 runs the same load as 4. Z-scaling, spread over all 40 sections, so requests to the dead database keep loading the shared API (as buyers would keep trying). k6 tags every request with its database (`db:a` / `db:b`) and prints the response time for each separately. The table values come from `db:a`. Also write down how the `db:b` requests failed (a fast error, or a hang). The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
-- **7. Oversell check** is a correctness test, not a speed test. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
+- **8. X+Z scaling** was added after 4: there the API, not Postgres, sat at its CPU limit. 8 keeps 4's setup and load test unchanged and adds 2 API copies, to see whether the API was what held 4 back.
+- **6. Fault isolation** asks: when database b dies, do buyers on database a notice? It uses 8's setup (3 API copies), so the API has room to spare and only the dead database can explain a change on a. Same steps as 8 (150-500, step 50), but k6 runs with `SPLIT=yes`:
+  - Each step is two k6 scenarios: `rate_<n>_a` buys in sections 101-120 (database a) and `rate_<n>_b` in 121-140 (database b), each at half the step's rate with its own 15 VUs (instead of 30 shared).
+  - Why: with shared VUs, buys to b that hang would use up the VUs, and a would get fewer buys through because of k6, not the system. Split, a and b share only the API, which is what the test is about.
+  - Requests to the dead database keep loading the shared API (as buyers would keep trying).
+  - Stop database b after resetting both: `kubectl scale statefulset postgres-b -n booking --replicas=0`. Start it again with `--replicas=1`.
+  - The table has p95 and error rate for each database; Dropped and Got through are for a. Also write down how the b requests failed (a fast error, or a hang).
+  - The per-section kill switch (Design to Be Disabled) is shown in the demo, not load-tested.
+- **7. Oversell check** is a correctness test, not a speed test. It uses 8's setup (3 API copies), so buys race across separate processes and only the database can stop an oversell. Before the run, set a low capacity in both databases: `UPDATE section SET capacity = 100 WHERE id BETWEEN 101 AND 140;`. After the run, check `sold <= capacity` in both databases, and read k6's `refusals` count to show that refusals actually happened.
 
 ## What each cell records
 
@@ -35,6 +43,7 @@ Speed rows (1-6, all except 7. Oversell check):
 
 - **p95 > 200 ms at:** the first load step (req/s) from which p95 stays over 200 ms: that step and every later step in the run are over. A single step over 200 ms followed by steps under it is a blip, not the limit; write it in the run's notes.
 - **errors > 1% at:** the first load step (req/s) where the error rate goes over 1%.
+- **throughput (writes with 30 VUs: 2, 4, 6, 8):** the highest number of requests answered per second in any step (`Got through` in `results.md`). With 30 VUs p95 cannot rise much above the limit, so this is where an improvement shows (`results.md`, Scenario 4: p95 never over 200 ms, throughput 330 against Scenario 2's about 200).
 - **step size:** the step increment used, so the reader can see how precise the two limits are (a limit of 300 with step 50 means "between 250 and 300").
 
 200 ms is our own target response time (SLO), not a law. Users stay in flow up to about 1 s (Nielsen); 200 ms on the server leaves room for network and UI. Normal local latency is a few ms to a few tens of ms, so crossing 200 ms means requests are queuing: the system is saturated.

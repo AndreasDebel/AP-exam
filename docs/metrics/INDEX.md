@@ -10,7 +10,7 @@ Load tests and metrics for the exam (issue #30). How to start everything and run
 | `other-results/`      | Same tables for runs outside the scenarios (probes, setup checks); a file per scenario  |
 | `error-sources.md`    | Problems met while setting up the tests, and what we do about each                      |
 | `other-images/`       | Grafana screenshots for the runs in `other-results/`                                    |
-| `images/`             | Grafana screenshots, one subfolder per scenario 1-7 (Prometheus data is lost with it)   |
+| `images/`             | Grafana screenshots, one subfolder per scenario 1-8 (Prometheus data is lost with it)   |
 
 ## Status (written 2026-11-25)
 
