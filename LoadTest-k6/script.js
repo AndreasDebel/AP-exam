@@ -27,8 +27,8 @@ scenarios['warmup'] = {
     timeUnit: '1s',
     duration: '1m',
     startTime: '0s',
-    preAllocatedVUs: 20,
-    maxVUs: 1000,
+    preAllocatedVUs: 30,
+    maxVUs: 30,
 };
 const warmupLength = 90;   // seconds: 60 s warm-up + 30 s pause. Every step starts this much later.
 
@@ -41,8 +41,8 @@ for (let i = 0; i < stepCount; i++) {
         timeUnit: '1s',
         duration: '1m',
         startTime: `${warmupLength + i * 90}s`,   // efter warm-up, så 60 s trin + 30 s pause
-        preAllocatedVUs: 20,
-        maxVUs: 1000,   // mange, så requests der hænger (død database) ikke løber tør for VUs
+        preAllocatedVUs: 30,
+        maxVUs: 30,   // mange, så requests der hænger (død database) ikke løber tør for VUs
     };
 
     // Ikke pass/fail-grænser (">= 0" er altid sandt). Linjerne får bare k6 til at skrive tallene
